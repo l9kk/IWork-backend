@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "iwork"
+version = "0.1.0"
+description = ""
+authors = ["Askhat <askhat.ss23@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = {extras = ["standart"], version = "^0.115.11"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
