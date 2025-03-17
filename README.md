@@ -1,6 +1,5 @@
 # IWork Backend
 
-![IWork Logo](https://via.placeholder.com/200x80?text=IWork)
 
 A comprehensive backend for the IWork platform - connecting professionals with company insights through reviews and salary data.
 
