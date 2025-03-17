@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 
 from app.api import auth, users, companies, reviews, salaries, search, admin
 from app.core.config import settings
@@ -50,10 +51,11 @@ async def health_check(
         db=Depends(get_db),
         redis: RedisClient = Depends(get_redis)
 ):
-    # Check database connection
+    """
+    Health check endpoint to verify database and Redis connections
+    """
     try:
-        # Execute a simple query
-        db.execute("SELECT 1").fetchall()
+        db.execute(text("SELECT 1")).fetchall()
         db_status = "ok"
     except SQLAlchemyError as e:
         db_status = f"error: {str(e)}"
@@ -84,7 +86,6 @@ async def health_check(
             }
         }
     )
-
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,7 +1,10 @@
 import os
+
+from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import Optional, List, Union, Dict
 
+load_dotenv()
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "IWork API"
