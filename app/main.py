@@ -13,7 +13,7 @@ from app.utils.redis_cache import get_redis, RedisClient
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    openapi_url=f"/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -26,13 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
-app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
-app.include_router(companies.router, prefix=f"{settings.API_V1_STR}/companies", tags=["companies"])
-app.include_router(reviews.router, prefix=f"{settings.API_V1_STR}/reviews", tags=["reviews"])
-app.include_router(salaries.router, prefix=f"{settings.API_V1_STR}/salaries", tags=["salaries"])
-app.include_router(search.router, prefix=f"{settings.API_V1_STR}/search", tags=["search"])
-app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
+app.include_router(auth.router, tags=["auth"])
+app.include_router(users.router, tags=["users"])
+app.include_router(companies.router, tags=["companies"])
+app.include_router(reviews.router, tags=["reviews"])
+app.include_router(salaries.router, tags=["salaries"])
+app.include_router(search.router, tags=["search"])
+app.include_router(admin.router, tags=["admin"])
 
 
 # Request ID middleware

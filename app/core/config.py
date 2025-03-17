@@ -8,7 +8,6 @@ load_dotenv()
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "IWork API"
-    API_V1_STR: str = "/api/v1"
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
     ENVIRONMENT: str = os.getenv("ENVIRONMENT")

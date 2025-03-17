@@ -77,7 +77,6 @@ Create a `.env` file in the root directory with the following variables:
 ```
 # Application settings
 PROJECT_NAME="IWork API"
-API_V1_STR="/api/v1"
 SECRET_KEY="your-secure-secret-key-change-this-in-production"
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 ENVIRONMENT="development"  # Options: development, staging, production
@@ -145,13 +144,13 @@ Once the application is running, you can explore the API documentation:
 
 ### Main API Endpoints
 
-- 🔐 **Authentication**: `/api/v1/auth/login`, `/api/v1/auth/register` 
-- 👥 **Users**: `/api/v1/users/me`, `/api/v1/users/me/settings`
-- 🏢 **Companies**: `/api/v1/companies`
-- ⭐ **Reviews**: `/api/v1/reviews`
-- 💰 **Salaries**: `/api/v1/salaries`
-- 🔍 **Search**: `/api/v1/search/companies`, `/api/v1/search/reviews`, `/api/v1/search/salaries`
-- 👮 **Admin**: `/api/v1/admin/dashboard`, `/api/v1/admin/reviews/pending`
+- 🔐 **Authentication**: `/api/auth/login`, `/api/auth/register` 
+- 👥 **Users**: `/api/users/me`, `/api/users/me/settings`
+- 🏢 **Companies**: `/api/companies`
+- ⭐ **Reviews**: `/api/reviews`
+- 💰 **Salaries**: `/api/salaries`
+- 🔍 **Search**: `/api/search/companies`, `/api/search/reviews`, `/api/search/salaries`
+- 👮 **Admin**: `/api/admin/dashboard`, `/api/admin/reviews/pending`
 
 ## 💾 Database Models
 

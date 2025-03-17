@@ -12,7 +12,7 @@ from app.models.user import User
 from app.schemas.user import TokenPayload
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login"
+    tokenUrl=f"/auth/login"
 )
 
 
