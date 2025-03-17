@@ -4,7 +4,6 @@ from fastapi import FastAPI, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text
 
 from app.api import auth, users, companies, reviews, salaries, search, admin
 from app.core.config import settings
@@ -26,24 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, tags=["auth"])
-app.include_router(users.router, tags=["users"])
-app.include_router(companies.router, tags=["companies"])
-app.include_router(reviews.router, tags=["reviews"])
-app.include_router(salaries.router, tags=["salaries"])
-app.include_router(search.router, tags=["search"])
-app.include_router(admin.router, tags=["admin"])
-
-
-# Request ID middleware
-@app.middleware("http")
-async def add_request_id(request: Request, call_next):
-    request_id = str(uuid.uuid4())
-    request.state.request_id = request_id
-    response = await call_next(request)
-    response.headers["X-Request-ID"] = request_id
-    return response
-
 
 # Health check endpoint
 @app.get("/health", tags=["health"])
@@ -55,7 +36,7 @@ async def health_check(
     Health check endpoint to verify database and Redis connections
     """
     try:
-        db.execute(text("SELECT 1")).fetchall()
+        db.execute("SELECT 1").fetchall()
         db_status = "ok"
     except SQLAlchemyError as e:
         db_status = f"error: {str(e)}"
@@ -86,6 +67,21 @@ async def health_check(
             }
         }
     )
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+app.include_router(auth.router, tags=["auth"])
+app.include_router(users.router, tags=["users"])
+app.include_router(companies.router, tags=["companies"])
+app.include_router(reviews.router, tags=["reviews"])
+app.include_router(salaries.router, tags=["salaries"])
+app.include_router(search.router, tags=["search"])
+app.include_router(admin.router, tags=["admin"])
 
 if __name__ == "__main__":
     import uvicorn
