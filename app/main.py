@@ -1,8 +1,92 @@
-from fastapi import FastAPI
+import time
+import uuid
+from fastapi import FastAPI, Request, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
-app = FastAPI()
+from app.api import auth, users, companies, reviews, salaries, search, admin
+from app.core.config import settings
+from app.db.base import get_db
+from app.utils.redis_cache import get_redis, RedisClient
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
+app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
+app.include_router(companies.router, prefix=f"{settings.API_V1_STR}/companies", tags=["companies"])
+app.include_router(reviews.router, prefix=f"{settings.API_V1_STR}/reviews", tags=["reviews"])
+app.include_router(salaries.router, prefix=f"{settings.API_V1_STR}/salaries", tags=["salaries"])
+app.include_router(search.router, prefix=f"{settings.API_V1_STR}/search", tags=["search"])
+app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+# Request ID middleware
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+# Health check endpoint
+@app.get("/health", tags=["health"])
+async def health_check(
+        db=Depends(get_db),
+        redis: RedisClient = Depends(get_redis)
+):
+    # Check database connection
+    try:
+        # Execute a simple query
+        db.execute("SELECT 1").fetchall()
+        db_status = "ok"
+    except SQLAlchemyError as e:
+        db_status = f"error: {str(e)}"
+
+    # Check Redis connection
+    redis_status = "ok"
+    try:
+        test_key = f"health_check:{uuid.uuid4()}"
+        await redis.set(test_key, "test", expire=10)
+        test_value = await redis.get(test_key)
+        if test_value != "test":
+            redis_status = "error: unexpected value returned"
+    except Exception as e:
+        redis_status = f"error: {str(e)}"
+
+    status_code = status.HTTP_200_OK
+    if "error" in db_status or "error" in redis_status:
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if status_code == status.HTTP_200_OK else "unhealthy",
+            "timestamp": time.time(),
+            "services": {
+                "database": db_status,
+                "redis": redis_status
+            }
+        }
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)

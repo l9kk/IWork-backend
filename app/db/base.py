@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# Configure PostgreSQL connection with settings for serverless
+# Configure PostgreSQL connection
 engine = create_engine(
     settings.SQLALCHEMY_DATABASE_URI,
     echo=settings.DEBUG,

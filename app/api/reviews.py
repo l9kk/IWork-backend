@@ -24,10 +24,6 @@ async def create_review(
         review_in: ReviewCreate,
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Create a new company review
-    """
-    # Check if company exists
     company = crud.company.get(db, id=review_in.company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -53,7 +49,6 @@ async def create_review(
     await redis.delete(f"company:detail:{review.company_id}")
     await redis.delete_pattern(f"company:reviews:{review.company_id}*")
 
-    # Return response
     user_name = None
     if not review.is_anonymous:
         user_name = f"{current_user.first_name} {current_user.last_name}".strip()
@@ -86,10 +81,6 @@ async def get_company_reviews(
         skip: int = 0,
         limit: int = 20
 ):
-    """
-    Get reviews for a specific company
-    """
-    # Check if company exists
     company = crud.company.get(db, id=company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -99,7 +90,6 @@ async def get_company_reviews(
     if cached_result:
         return cached_result
 
-    # Only show verified reviews to regular users
     reviews = crud.review.get_company_reviews(
         db, company_id=company_id, skip=skip, limit=limit
     )
@@ -144,9 +134,6 @@ async def get_my_reviews(
         skip: int = 0,
         limit: int = 50
 ):
-    """
-    Get the current user's reviews
-    """
     reviews = crud.review.get_user_reviews(
         db, user_id=current_user.id, skip=skip, limit=limit
     )
@@ -184,14 +171,10 @@ async def update_review(
         review_in: ReviewUpdate,
         current_user: User = Depends(get_current_user)
 ):
-    """
-    Update a user's review
-    """
     review = crud.review.get(db, id=review_id)
     if not review or review.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Review not found or not owned by user")
 
-    # Don't allow updates for verified reviews to prevent edit after approval
     if review.status == ReviewStatus.VERIFIED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -200,7 +183,6 @@ async def update_review(
 
     updated_review = crud.review.update(db, db_obj=review, obj_in=review_in)
 
-    # Reset status to pending if content is modified
     content_fields = ["pros", "cons", "recommendations", "rating"]
     update_data = review_in.dict(exclude_unset=True)
 
@@ -209,7 +191,6 @@ async def update_review(
             db, review_id=review_id, status=ReviewStatus.PENDING
         )
 
-        # Re-run AI scanner
         if settings.AI_SCANNER_ENABLED:
             # First delete old flags
             crud.review.clear_ai_flags(db, review_id=review_id)
@@ -232,7 +213,6 @@ async def update_review(
     await redis.delete(f"company:detail:{review.company_id}")
     await redis.delete_pattern(f"company:reviews:{review.company_id}*")
 
-    # Get company name
     company = crud.company.get(db, id=review.company_id)
     company_name = company.name if company else "Unknown Company"
 
