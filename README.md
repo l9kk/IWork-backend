@@ -35,7 +35,7 @@ IWork is a platform that allows professionals to share and access company review
 ### Prerequisites
 
 - Python 3.9 or higher
-- Poetry (recommended) or pip
+- Poetry
 
 ### Installation
 
@@ -50,8 +50,6 @@ IWork is a platform that allows professionals to share and access company review
    # Using Poetry (recommended)
    poetry install
 
-   # Using pip
-   pip install -r requirements.txt
    ```
 
 3. Create a `.env` file in the root directory (see [Configuration](#%EF%B8%8F-configuration) section)
