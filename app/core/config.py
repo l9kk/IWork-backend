@@ -11,7 +11,6 @@ class Settings(BaseModel):
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT")
     DEBUG: bool = os.getenv("DEBUG").lower() == "true"
     ALLOWED_HOSTS: List[str] = os.getenv("ALLOWED_HOSTS").split(",")
 
@@ -25,7 +24,6 @@ class Settings(BaseModel):
 
     # AI Scanner settings
     AI_SCANNER_ENABLED: bool = os.getenv("AI_SCANNER_ENABLED").lower() == "true"
-    AI_SCANNER_THRESHOLD: float = float(os.getenv("AI_SCANNER_THRESHOLD"))
 
     # Email settings
     SMTP_SERVER: Optional[str] = os.getenv("SMTP_SERVER")
@@ -38,9 +36,6 @@ class Settings(BaseModel):
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS").split(",")
     CORS_ALLOW_CREDENTIALS: bool = os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
 
-    # Rate limiting
-    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "True").lower() == "true"
-    RATE_LIMIT_DEFAULT: str = os.getenv("RATE_LIMIT_DEFAULT", "100/minute")
 
     class Config:
         env_file = ".env"
