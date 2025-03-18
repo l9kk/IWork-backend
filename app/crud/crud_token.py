@@ -46,13 +46,6 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
             db.add(refresh_token)
             db.commit()
 
-    def revoke_all_user_tokens(self, db: Session, *, user_id: int) -> None:
-        db.query(RefreshToken).filter(
-            RefreshToken.user_id == user_id,
-            RefreshToken.revoked == False
-        ).update({"revoked": True})
-        db.commit()
-
     def clean_expired_tokens(self, db: Session) -> None:
         now = datetime.now(timezone.utc)
         db.query(RefreshToken).filter(

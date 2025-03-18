@@ -8,7 +8,6 @@ from app.core.dependencies import get_current_user
 from app.core.security import create_access_token
 from app.core.config import settings
 from app.db.base import get_db
-from app.models.user import User
 from app import crud
 from app.schemas.user import User as UserSchema, UserCreate
 from app.schemas.token import Token, TokenRefresh
@@ -136,17 +135,6 @@ def logout(
     crud.refresh_token.revoke_token(db, token=token_data.refresh_token)
 
     return {"message": "Successfully logged out"}
-
-
-@router.post("/auth/logout-all", status_code=status.HTTP_200_OK)
-def logout_all_devices(
-        db: Session = Depends(get_db),
-        current_user: User = Depends(get_current_user)
-) -> Any:
-    crud.refresh_token.revoke_all_user_tokens(db, user_id=current_user.id)
-
-    return {"message": "Successfully logged out from all devices"}
-
 
 @router.post("/auth/register", response_model=UserSchema)
 def register_new_user(

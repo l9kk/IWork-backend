@@ -79,12 +79,12 @@ async def add_request_id(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 app.include_router(auth.router, tags=["auth"])
-app.include_router(users.router, tags=["users"])
-app.include_router(companies.router, tags=["companies"])
-app.include_router(reviews.router, tags=["reviews"])
-app.include_router(salaries.router, tags=["salaries"])
-app.include_router(search.router, tags=["search"])
-app.include_router(admin.router, tags=["admin"])
+app.include_router(users.router, prefix= "/users", tags=["users"])
+app.include_router(companies.router, prefix="/companies", tags=["companies"])
+app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
+app.include_router(salaries.router, prefix="/salaries", tags=["salaries"])
+app.include_router(search.router, prefix="/search", tags=["search"])
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 @app.on_event("startup")
 async def start_scheduler():
