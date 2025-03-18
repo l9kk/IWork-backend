@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Your Review Wasn't Approved</h2>
+<p>Hello {{ user.first_name }},</p>
+
+<p>We're writing to let you know that your review for <strong>{{ company_name }}</strong> wasn't approved.</p>
+
+<p>Here's the feedback from our moderation team:</p>
+<p><em>"{{ review.moderation_notes }}"</em></p>
+
+<p>You can submit a revised review that follows our community guidelines:</p>
+
+<p><a href="{{ new_review_url }}" class="button">Create New Review</a></p>
+
+<p>If you have any questions, please contact our support team.</p>
+{% endblock %}
