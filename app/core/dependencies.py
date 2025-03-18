@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.security import ALGORITHM
 from app.db.base import get_db
 from app.models.user import User
-from app.schemas.user import TokenPayload
+from app.schemas.token import TokenPayload
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"/auth/login"

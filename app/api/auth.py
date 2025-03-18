@@ -55,9 +55,7 @@ def login_access_token(
 
     return {
         "access_token": access_token,
-        "token_type": "bearer",
         "refresh_token": refresh_token_db.token,
-        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
     }
 
 
@@ -120,9 +118,7 @@ def refresh_token(
 
     return {
         "access_token": access_token,
-        "token_type": "bearer",
         "refresh_token": new_refresh_token.token,
-        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
     }
 
 
