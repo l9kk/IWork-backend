@@ -1,19 +1,31 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
 from app.core.config import settings
 from app.db.base import get_db
 from app import crud
-from app.schemas.user import User as UserSchema, UserCreate, Token
+from app.schemas.user import User as UserSchema, UserCreate, Token, LoginRequest
 from app.schemas.settings import AccountSettingsUpdate
 
 router = APIRouter()
 
+
+async def form_data_from_json(login_data: LoginRequest) -> Any:
+    class FormData:
+        def __init__(self, username: str, password: str):
+            self.username = username
+            self.password = password
+            self.scope = ""
+            self.client_id = None
+            self.client_secret = None
+            self.grant_type = "password"
+
+    return FormData(username=login_data.username, password=login_data.password)
 
 @router.post("/auth/login", response_model=Token)
 def login_access_token(
@@ -43,6 +55,12 @@ def login_access_token(
         "token_type": "bearer",
     }
 
+@router.post("/auth/json-login", response_model=Token)
+async def login_json(
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends(form_data_from_json)],
+        db: Session = Depends(get_db)
+) -> Any:
+    return login_access_token(db=db, form_data=form_data)
 
 @router.post("/auth/register", response_model=UserSchema)
 def register_new_user(

@@ -3,6 +3,10 @@ from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime
 
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = True
