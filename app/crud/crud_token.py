@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
             user_agent: Optional[str] = None
     ) -> RefreshToken:
         token_value = str(uuid.uuid4())
-        expires_at = datetime.utcnow() + expires_delta
+        expires_at = datetime.now(timezone.utc) + expires_delta
 
         refresh_token = RefreshToken(
             user_id=user_id,
@@ -36,7 +36,7 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
         return db.query(RefreshToken).filter(RefreshToken.token == token).first()
 
     def is_valid(self, refresh_token: RefreshToken) -> bool:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         return (not refresh_token.revoked and refresh_token.expires_at > now)
 
     def revoke_token(self, db: Session, *, token: str) -> None:
@@ -54,8 +54,9 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
         db.commit()
 
     def clean_expired_tokens(self, db: Session) -> None:
+        now = datetime.now(timezone.utc)
         db.query(RefreshToken).filter(
-            RefreshToken.expires_at < datetime.utcnow()
+            RefreshToken.expires_at < now
         ).delete()
         db.commit()
 
