@@ -3,10 +3,6 @@ from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = True
@@ -54,13 +50,3 @@ class User(UserInDBBase):
 
 class UserInDB(UserInDBBase):
     hashed_password: str
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenPayload(BaseModel):
-    sub: int
-    exp: datetime

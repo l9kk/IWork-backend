@@ -24,3 +24,4 @@ class User(Base):
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")
     salaries = relationship("Salary", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("AccountSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")

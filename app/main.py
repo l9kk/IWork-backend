@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
+import asyncio
+from app.services.token_cleanup import start_token_cleanup_scheduler
 
 from app.api import auth, users, companies, reviews, salaries, search, admin
 from app.core.config import settings
@@ -83,6 +85,11 @@ app.include_router(reviews.router, tags=["reviews"])
 app.include_router(salaries.router, tags=["salaries"])
 app.include_router(search.router, tags=["search"])
 app.include_router(admin.router, tags=["admin"])
+
+@app.on_event("startup")
+async def start_scheduler():
+    # Start the token cleanup task
+    asyncio.create_task(start_token_cleanup_scheduler())
 
 if __name__ == "__main__":
     import uvicorn

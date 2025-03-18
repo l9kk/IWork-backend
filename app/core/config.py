@@ -10,6 +10,7 @@ class Settings(BaseModel):
     PROJECT_NAME: str = "IWork API"
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+    REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
     ENVIRONMENT: str = os.getenv("ENVIRONMENT")
     DEBUG: bool = os.getenv("DEBUG").lower() == "true"
     ALLOWED_HOSTS: List[str] = os.getenv("ALLOWED_HOSTS").split(",")
