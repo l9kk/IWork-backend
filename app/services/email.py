@@ -1,7 +1,8 @@
 import logging
+from contextlib import contextmanager
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Dict, List
-from datetime import timedelta
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from fastapi_mail.errors import ConnectionErrors
@@ -9,6 +10,8 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.core.config import settings
 from app.core.security import create_access_token
+from app.crud import user
+from app.db.base import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +20,7 @@ env = Environment(
     autoescape=select_autoescape(['html', 'xml'])
 )
 
+# Email connection configuration
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.SMTP_USER,
     MAIL_PASSWORD=settings.SMTP_PASSWORD,
@@ -30,6 +34,20 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True,
     TEMPLATE_FOLDER=Path(settings.EMAIL_TEMPLATES_DIR)
 )
+
+
+@contextmanager
+def get_email_db_session():
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Database error in email session: {e}")
+        raise
+    finally:
+        db.close()
 
 
 async def send_email(
@@ -46,6 +64,8 @@ async def send_email(
         return
 
     try:
+        template_data["settings"] = settings
+
         template = env.get_template(f"{template_name}")
         html_content = template.render(**template_data)
 
@@ -105,6 +125,9 @@ async def send_verification_email(user_email: str, user_first_name: str, user_id
         "expire_hours": settings.VERIFICATION_TOKEN_EXPIRE_HOURS
     }
 
+    with get_email_db_session() as db:
+        user.set_verification_token(db, user_id=user_id, token=verification_token)
+
     await send_email(
         email_to=[user_email],
         subject=subject,
@@ -127,6 +150,9 @@ async def send_password_reset_email(user_email: str, user_first_name: str, user_
         "reset_url": reset_url,
         "expire_hours": settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS
     }
+
+    with get_email_db_session() as db:
+        user.set_password_reset_token(db, user_id=user_id, token=password_reset_token)
 
     await send_email(
         email_to=[user_email],

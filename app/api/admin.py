@@ -12,7 +12,7 @@ from app.db.base import get_db
 from app.models.review import ReviewStatus, Review
 from app.models.user import User
 from app.schemas.review import AdminReviewResponse
-from app.services.email import send_review_approved_email, send_review_rejected_email
+from app.services.email import send_review_approved_email, send_review_rejected_email, get_email_db_session
 from app.utils.redis_cache import RedisClient, get_redis
 
 router = APIRouter()
@@ -168,14 +168,15 @@ async def admin_approve_review(
 
     # Send notification email if enabled for the user
     if user and settings.EMAILS_ENABLED:
-        user_settings = crud.account_settings.get_by_user_id(db, user_id=user.id)
-        if user_settings and user_settings.email_notifications_enabled and user_settings.notify_on_review_approval:
-            await send_review_approved_email(
-                user_email=user.email,
-                user_first_name=user.first_name or "User",
-                company_name=company.name if company else "a company",
-                review_id=review.id
-            )
+        with get_email_db_session() as email_db:
+            user_settings = crud.account_settings.get_by_user_id(email_db, user_id=user.id)
+            if user_settings and user_settings.email_notifications_enabled and user_settings.notify_on_review_approval:
+                await send_review_approved_email(
+                    user_email=user.email,
+                    user_first_name=user.first_name or "User",
+                    company_name=company.name if company else "a company",
+                    review_id=review.id
+                )
 
     # Get AI scanner flags
     ai_flags = []
@@ -238,14 +239,15 @@ async def admin_reject_review(
 
     # Send notification email if enabled for the user
     if user and settings.EMAILS_ENABLED:
-        user_settings = crud.account_settings.get_by_user_id(db, user_id=user.id)
-        if user_settings and user_settings.email_notifications_enabled and user_settings.notify_on_review_rejection:
-            await send_review_rejected_email(
-                user_email=user.email,
-                user_first_name=user.first_name or "User",
-                company_name=company.name if company else "a company",
-                rejection_reason=moderation_notes
-            )
+        with get_email_db_session() as email_db:
+            user_settings = crud.account_settings.get_by_user_id(email_db, user_id=user.id)
+            if user_settings and user_settings.email_notifications_enabled and user_settings.notify_on_review_rejection:
+                await send_review_rejected_email(
+                    user_email=user.email,
+                    user_first_name=user.first_name or "User",
+                    company_name=company.name if company else "a company",
+                    rejection_reason=moderation_notes
+                )
 
     # Get AI scanner flags
     ai_flags = []

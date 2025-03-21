@@ -227,6 +227,9 @@ async def request_verification_email(
         db: Session = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
+    """
+    Send a password reset email.
+    """
     if current_user.is_verified:
         return {"message": "Email already verified"}
 
@@ -264,6 +267,9 @@ def reset_password(
         db: Session = Depends(get_db),
         reset_data: PasswordReset
 ):
+    """
+    Reset a user's password using the reset token.
+    """
     try:
         payload = jwt.decode(
             reset_data.token, settings.SECRET_KEY, algorithms=[ALGORITHM]
