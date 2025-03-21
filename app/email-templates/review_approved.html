@@ -3,17 +3,13 @@
 {% block content %}
 <h2>Your Review Has Been Approved</h2>
 <p>Hello {{ user.first_name }},</p>
+<p>Your review for <strong>{{ company_name }}</strong> has been approved and is now visible to other users.</p>
 
-<p>Great news! Your review for <strong>{{ company_name }}</strong> has been approved and is now visible on our platform.</p>
+<p>Thank you for contributing to the IWork community and helping others make informed career decisions.</p>
 
-<p>Here's a summary of your review:</p>
-<ul>
-    <li>Company: {{ company_name }}</li>
-    <li>Rating: {{ review.rating }} / 5</li>
-    <li>Date submitted: {{ review.created_at.strftime('%Y-%m-%d') }}</li>
-</ul>
-
+{% if review_url %}
 <p><a href="{{ review_url }}" class="button">View Your Review</a></p>
+{% endif %}
 
-<p>Thank you for contributing to the IWork community!</p>
+<p>If you have any questions or would like to share more insights, feel free to submit another review or update your existing one.</p>
 {% endblock %}

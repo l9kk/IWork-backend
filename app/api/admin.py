@@ -1,15 +1,18 @@
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 from datetime import datetime
+from typing import List, Optional, Dict, Any
 
-from app.db.base import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 from app import crud
+from app.core.config import settings
+from app.core.dependencies import get_current_admin_user
+from app.db.base import get_db
 from app.models.review import ReviewStatus, Review
 from app.models.user import User
 from app.schemas.review import AdminReviewResponse
-from app.core.dependencies import get_current_admin_user
+from app.services.email import send_review_approved_email, send_review_rejected_email
 from app.utils.redis_cache import RedisClient, get_redis
 
 router = APIRouter()
@@ -147,6 +150,10 @@ async def admin_approve_review(
     if review.status != ReviewStatus.PENDING:
         raise HTTPException(status_code=400, detail="Only pending reviews can be approved")
 
+    # Get user and company for email notification
+    user = crud.user.get(db, id=review.user_id)
+    company = crud.company.get(db, id=review.company_id)
+
     review = crud.review.update_status(
         db,
         review_id=review_id,
@@ -159,8 +166,16 @@ async def admin_approve_review(
     await redis.delete_pattern(f"company:reviews:{review.company_id}*")
     await redis.delete("admin:dashboard")
 
-    company = crud.company.get(db, id=review.company_id)
-    user = crud.user.get(db, id=review.user_id)
+    # Send notification email if enabled for the user
+    if user and settings.EMAILS_ENABLED:
+        user_settings = crud.account_settings.get_by_user_id(db, user_id=user.id)
+        if user_settings and user_settings.email_notifications_enabled and user_settings.notify_on_review_approval:
+            await send_review_approved_email(
+                user_email=user.email,
+                user_first_name=user.first_name or "User",
+                company_name=company.name if company else "a company",
+                review_id=review.id
+            )
 
     # Get AI scanner flags
     ai_flags = []
@@ -207,6 +222,10 @@ async def admin_reject_review(
     if review.status != ReviewStatus.PENDING:
         raise HTTPException(status_code=400, detail="Only pending reviews can be rejected")
 
+    # Get user and company for email notification
+    user = crud.user.get(db, id=review.user_id)
+    company = crud.company.get(db, id=review.company_id)
+
     review = crud.review.update_status(
         db,
         review_id=review_id,
@@ -217,8 +236,16 @@ async def admin_reject_review(
     # Invalidate cache
     await redis.delete("admin:dashboard")
 
-    company = crud.company.get(db, id=review.company_id)
-    user = crud.user.get(db, id=review.user_id)
+    # Send notification email if enabled for the user
+    if user and settings.EMAILS_ENABLED:
+        user_settings = crud.account_settings.get_by_user_id(db, user_id=user.id)
+        if user_settings and user_settings.email_notifications_enabled and user_settings.notify_on_review_rejection:
+            await send_review_rejected_email(
+                user_email=user.email,
+                user_first_name=user.first_name or "User",
+                company_name=company.name if company else "a company",
+                rejection_reason=moderation_notes
+            )
 
     # Get AI scanner flags
     ai_flags = []

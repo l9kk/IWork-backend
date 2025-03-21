@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Your Review Wasn't Approved</h2>
+<h2>Your Review Requires Changes</h2>
 <p>Hello {{ user.first_name }},</p>
+<p>Your review for <strong>{{ company_name }}</strong> could not be approved in its current form and requires some changes.</p>
 
-<p>We're writing to let you know that your review for <strong>{{ company_name }}</strong> wasn't approved.</p>
+<div style="padding: 16px; background-color: #f8f9fa; border-left: 4px solid #dc3545; margin-bottom: 16px;">
+    <h3 style="margin-top: 0;">Feedback from moderator:</h3>
+    <p>{{ rejection_reason }}</p>
+</div>
 
-<p>Here's the feedback from our moderation team:</p>
-<p><em>"{{ review.moderation_notes }}"</em></p>
+<p>You can edit your review by logging into your account and visiting the "My Reviews" section.</p>
 
-<p>You can submit a revised review that follows our community guidelines:</p>
+<p>Our content guidelines aim to ensure that all reviews are helpful, constructive, and respectful. Please make the necessary changes and resubmit your review for approval.</p>
 
-<p><a href="{{ new_review_url }}" class="button">Create New Review</a></p>
-
-<p>If you have any questions, please contact our support team.</p>
+<p>If you have any questions about this decision, please contact our support team.</p>
 {% endblock %}

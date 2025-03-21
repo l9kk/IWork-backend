@@ -146,7 +146,7 @@ def logout(
     return {"message": "Successfully logged out"}
 
 @router.post("/auth/register", response_model=UserSchema)
-def register_new_user(
+async def register_new_user(
         *,
         db: Session = Depends(get_db),
         user_in: UserCreate
@@ -164,6 +164,13 @@ def register_new_user(
         db,
         user_id=user.id,
         obj_in=AccountSettingsUpdate()
+    )
+
+    # Send verification email
+    await send_verification_email(
+        user_email=user.email,
+        user_first_name=user.first_name or "User",
+        user_id=user.id
     )
 
     return user
