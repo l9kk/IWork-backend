@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -14,8 +15,11 @@ from app.db.base import SessionLocal
 
 logger = logging.getLogger(__name__)
 
+templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "email-templates")
+os.makedirs(templates_dir, exist_ok=True)
+
 env = Environment(
-    loader=FileSystemLoader(settings.EMAIL_TEMPLATES_DIR),
+    loader=FileSystemLoader(templates_dir),
     autoescape=select_autoescape(['html', 'xml'])
 )
 
@@ -31,7 +35,7 @@ conf = ConnectionConfig(
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
-    TEMPLATE_FOLDER=Path(settings.EMAIL_TEMPLATES_DIR)
+    TEMPLATE_FOLDER=Path(templates_dir)
 )
 
 
