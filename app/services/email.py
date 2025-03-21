@@ -10,7 +10,6 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.core.config import settings
 from app.core.security import create_access_token
-from app.crud import user
 from app.db.base import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -126,7 +125,8 @@ async def send_verification_email(user_email: str, user_first_name: str, user_id
     }
 
     with get_email_db_session() as db:
-        user.set_verification_token(db, user_id=user_id, token=verification_token)
+        from app import crud
+        crud.user.set_verification_token(db, user_id=user_id, token=verification_token)
 
     await send_email(
         email_to=[user_email],
@@ -152,7 +152,8 @@ async def send_password_reset_email(user_email: str, user_first_name: str, user_
     }
 
     with get_email_db_session() as db:
-        user.set_password_reset_token(db, user_id=user_id, token=password_reset_token)
+        from app import crud
+        crud.user.set_password_reset_token(db, user_id=user_id, token=password_reset_token)
 
     await send_email(
         email_to=[user_email],
