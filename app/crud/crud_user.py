@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional, Union
 from sqlalchemy.orm import Session
+import uuid
+from datetime import datetime, timedelta, timezone
 
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
@@ -54,5 +56,52 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def is_admin(self, user: User) -> bool:
         return user.is_admin
 
+    def verify_email(self, db: Session, *, user_id: int) -> User:
+        user = self.get(db, id=user_id)
+        if user:
+            user.is_verified = True
+            user.verification_token = None
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    def set_verification_token(
+            self, db: Session, *, user_id: int, token: str
+    ) -> User:
+        user = self.get(db, id=user_id)
+        if user:
+            user.verification_token = token
+            user.verification_sent_at = datetime.now(timezone.utc)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    def set_password_reset_token(
+            self, db: Session, *, user_id: int, token: str
+    ) -> User:
+        user = self.get(db, id=user_id)
+        if user:
+            user.password_reset_token = token
+            user.password_reset_at = datetime.now(timezone.utc)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    def reset_password(
+            self, db: Session, *, user_id: int, new_password: str
+    ) -> User:
+        user = self.get(db, id=user_id)
+        if user:
+            hashed_password = get_password_hash(new_password)
+            user.hashed_password = hashed_password
+            user.password_reset_token = None
+            user.password_reset_at = None
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
 
 user = CRUDUser(User)

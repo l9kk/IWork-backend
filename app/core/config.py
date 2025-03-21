@@ -26,11 +26,23 @@ class Settings(BaseModel):
     AI_SCANNER_ENABLED: bool = os.getenv("AI_SCANNER_ENABLED").lower() == "true"
 
     # Email settings
-    SMTP_SERVER: Optional[str] = os.getenv("SMTP_SERVER")
-    SMTP_PORT: Optional[int] = int(os.getenv("SMTP_PORT"))
-    SMTP_USER: Optional[str] = os.getenv("SMTP_USER")
-    SMTP_PASSWORD: Optional[str] = os.getenv("SMTP_PASSWORD")
-    EMAIL_FROM: Optional[str] = os.getenv("EMAIL_FROM")
+    EMAILS_ENABLED: bool = os.getenv("EMAILS_ENABLED")
+    SMTP_TLS: bool = os.getenv("SMTP_TLS")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT"))
+    SMTP_HOST: str = os.getenv("SMTP_HOST")
+    SMTP_USER: str = os.getenv("SMTP_USER")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD")
+    EMAILS_FROM_EMAIL: str = os.getenv("EMAILS_FROM_EMAIL")
+    EMAILS_FROM_NAME: str = os.getenv("EMAILS_FROM_NAME")
+
+    # Frontend URLs
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = int(os.getenv("VERIFICATION_TOKEN_EXPIRE_HOURS", "48"))
+    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_HOURS", "24"))
+
+    # Templates directory
+    EMAIL_TEMPLATES_DIR: str = os.getenv("EMAIL_TEMPLATES_DIR", "app/email-templates")
 
     # Security settings
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS").split(",")

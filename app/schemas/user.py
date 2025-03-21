@@ -11,7 +11,7 @@ class UserBase(BaseModel):
     job_title: Optional[str] = None
     profile_image: Optional[str] = None
     is_admin: bool = False
-
+    is_verified: Optional[bool] = None
 
 class UserCreate(UserBase):
     email: EmailStr

@@ -1,17 +1,26 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user
-from app.core.security import create_access_token
-from app.core.config import settings
-from app.db.base import get_db
 from app import crud
-from app.schemas.user import User as UserSchema, UserCreate
-from app.schemas.token import Token, TokenRefresh
+from app.core.config import settings
+from app.core.dependencies import get_current_user
+from app.core.security import ALGORITHM
+from app.core.security import create_access_token
+from app.db.base import get_db
+from app.models import User
+from app.schemas.password_reset import EmailVerification, PasswordResetRequest, PasswordReset
 from app.schemas.settings import AccountSettingsUpdate
+from app.schemas.token import Token, TokenRefresh
+from app.schemas.user import User as UserSchema, UserCreate
+from app.services.email import (
+    send_verification_email,
+    send_password_reset_email,
+)
 
 router = APIRouter()
 
@@ -158,3 +167,130 @@ def register_new_user(
     )
 
     return user
+
+
+@router.post("/auth/verify-email", response_model=Dict[str, str])
+def verify_email(
+        *,
+        db: Session = Depends(get_db),
+        verification_data: EmailVerification
+):
+    try:
+        payload = jwt.decode(
+            verification_data.token, settings.SECRET_KEY, algorithms=[ALGORITHM]
+        )
+
+        jti = payload.get("jti", "")
+        if not jti or not jti.startswith("verification_"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification token"
+            )
+
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification token"
+            )
+
+        user = crud.user.get(db, id=int(user_id))
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        if user.is_verified:
+            return {"message": "Email already verified"}
+
+        crud.user.verify_email(db, user_id=user.id)
+        return {"message": "Email verified successfully"}
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+
+
+@router.post("/auth/request-verification-email", response_model=Dict[str, str])
+async def request_verification_email(
+        *,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+):
+    if current_user.is_verified:
+        return {"message": "Email already verified"}
+
+    await send_verification_email(
+        user_email=current_user.email,
+        user_first_name=current_user.first_name or "User",
+        user_id=current_user.id
+    )
+
+    return {"message": "Verification email sent"}
+
+
+@router.post("/auth/forgot-password", response_model=Dict[str, str])
+async def forgot_password(
+        *,
+        db: Session = Depends(get_db),
+        reset_request: PasswordResetRequest
+):
+    user = crud.user.get_by_email(db, email=reset_request.email)
+    if not user:
+        return {"message": "If your email is registered, you will receive a password reset link"}
+
+    await send_password_reset_email(
+        user_email=user.email,
+        user_first_name=user.first_name or "User",
+        user_id=user.id
+    )
+
+    return {"message": "If your email is registered, you will receive a password reset link"}
+
+
+@router.post("/auth/reset-password", response_model=Dict[str, str])
+def reset_password(
+        *,
+        db: Session = Depends(get_db),
+        reset_data: PasswordReset
+):
+    try:
+        payload = jwt.decode(
+            reset_data.token, settings.SECRET_KEY, algorithms=[ALGORITHM]
+        )
+
+        jti = payload.get("jti", "")
+        if not jti or not jti.startswith("password_reset_"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid password reset token"
+            )
+
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid password reset token"
+            )
+
+        user = crud.user.get(db, id=int(user_id))
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        crud.user.reset_password(db, user_id=user.id, new_password=reset_data.new_password)
+
+        crud.refresh_token.revoke_all_user_tokens(db, user_id=user.id)
+
+        return {"message": "Password reset successfully"}
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset token"
+        )

@@ -25,3 +25,9 @@ class User(Base):
     salaries = relationship("Salary", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("AccountSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
+    verification_sent_at = Column(DateTime(timezone=True), nullable=True)
+    password_reset_token = Column(String, nullable=True)
+    password_reset_at = Column(DateTime(timezone=True), nullable=True)
