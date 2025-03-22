@@ -48,6 +48,18 @@ class Settings(BaseModel):
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS").split(",")
     CORS_ALLOW_CREDENTIALS: bool = os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
 
+    # AWS S3 settings
+    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    AWS_BUCKET_NAME: str = os.getenv("AWS_BUCKET_NAME", "iwork-uploads")
+    AWS_S3_ENDPOINT: str = os.getenv("AWS_S3_ENDPOINT", "https://s3.amazonaws.com")
+
+    # Upload settings
+    MAX_UPLOAD_SIZE: int = int(os.getenv("MAX_UPLOAD_SIZE", "10485760"))  # 10MB default
+    ALLOWED_UPLOAD_EXTENSIONS: List[str] = os.getenv(
+        "ALLOWED_UPLOAD_EXTENSIONS", ".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx"
+    ).split(",")
 
     class Config:
         env_file = ".env"

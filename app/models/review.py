@@ -2,7 +2,6 @@ from enum import Enum as PyEnum
 from sqlalchemy import Boolean, Column, Integer, String, Float, Text, DateTime, ForeignKey, Enum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from typing import List
 
 from app.db.base import Base
 
@@ -55,3 +54,5 @@ class Review(Base):
     user = relationship("User", back_populates="reviews")
     company = relationship("Company", back_populates="reviews")
     ai_scanner_flags = relationship("AIScannerFlag", back_populates="review", cascade="all, delete-orphan")
+
+    file_attachments = relationship("FileAttachment", back_populates="review", cascade="all, delete-orphan")

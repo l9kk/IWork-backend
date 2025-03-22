@@ -31,3 +31,5 @@ class User(Base):
     verification_sent_at = Column(DateTime(timezone=True), nullable=True)
     password_reset_token = Column(String, nullable=True)
     password_reset_at = Column(DateTime(timezone=True), nullable=True)
+
+    file_attachments = relationship("FileAttachment", back_populates="user", cascade="all, delete-orphan")
