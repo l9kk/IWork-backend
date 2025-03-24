@@ -3,6 +3,7 @@ from pydantic import BaseModel, validator
 from datetime import datetime
 
 from app.models.review import ReviewStatus, EmployeeStatus
+from app.schemas.file import FileAttachmentResponse
 
 
 class ReviewBase(BaseModel):
@@ -72,9 +73,11 @@ class ReviewResponse(BaseModel):
     status: ReviewStatus
     created_at: datetime
     user_name: Optional[str] = None
+    file_attachments: Optional[List[FileAttachmentResponse]] = []
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class AIScannerFlagResponse(BaseModel):

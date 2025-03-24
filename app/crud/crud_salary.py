@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
-from sqlalchemy.orm import Session
+
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
 from app.models.salary import Salary, ExperienceLevel, EmploymentType

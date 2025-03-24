@@ -29,8 +29,9 @@ class CompanyResponse(BaseModel):
     location: Optional[str]
     logo_url: Optional[str]
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class CompanyDetail(CompanyResponse):
@@ -42,5 +43,6 @@ class CompanyDetail(CompanyResponse):
     avg_rating: float
     review_count: int
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

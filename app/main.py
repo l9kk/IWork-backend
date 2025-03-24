@@ -8,7 +8,7 @@ from sqlalchemy import text
 import asyncio
 from app.services.token_cleanup import start_token_cleanup_scheduler
 
-from app.api import auth, users, companies, reviews, salaries, search, admin
+from app.api import auth, users, companies, reviews, salaries, search, admin, files
 from app.core.config import settings
 from app.db.base import get_db
 from app.utils.redis_cache import get_redis, RedisClient
@@ -85,6 +85,7 @@ app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(salaries.router, prefix="/salaries", tags=["salaries"])
 app.include_router(search.router, prefix="/search", tags=["search"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(files.router, prefix=f"/files", tags=["files"])
 
 @app.on_event("startup")
 async def start_scheduler():

@@ -1,7 +1,6 @@
-from typing import List, Optional
-
+from typing import Optional, Type
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.crud.base import CRUDBase
 from app.models.review import Review, AIScannerFlag, ReviewStatus
@@ -21,7 +20,7 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
 
     def get_company_reviews(
             self, db: Session, *, company_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Review]:
+    ) -> list[Type[Review]]:
         return db.query(Review).filter(
             Review.company_id == company_id,
             Review.status == ReviewStatus.VERIFIED
@@ -29,14 +28,14 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
 
     def get_user_reviews(
             self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100
-    ) -> List[Review]:
+    ) -> list[Type[Review]]:
         return db.query(Review).filter(
             Review.user_id == user_id
         ).order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
 
     def get_pending_reviews(
             self, db: Session, *, skip: int = 0, limit: int = 100
-    ) -> List[Review]:
+    ) -> list[Type[Review]]:
         return db.query(Review).filter(
             Review.status == ReviewStatus.PENDING
         ).order_by(Review.created_at).offset(skip).limit(limit).all()
@@ -51,7 +50,7 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
             max_rating: Optional[float] = None,
             skip: int = 0,
             limit: int = 100
-    ) -> List[Review]:
+    ) -> list[Type[Review]]:
         search_query = db.query(Review).filter(Review.status == ReviewStatus.VERIFIED)
 
         if query:
@@ -76,7 +75,7 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
 
     def update_status(
             self, db: Session, *, review_id: int, status: ReviewStatus, moderation_notes: Optional[str] = None
-    ) -> Review:
+    ) -> Type[Review] | None:
         review = db.query(Review).filter(Review.id == review_id).first()
         if not review:
             return None
@@ -108,6 +107,11 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
     def clear_ai_flags(self, db: Session, *, review_id: int) -> None:
         db.query(AIScannerFlag).filter(AIScannerFlag.review_id == review_id).delete()
         db.commit()
+
+    def get_with_attachments(self, db: Session, *, id: int) -> Optional[Review]:
+        return db.query(Review).filter(Review.id == id).options(
+            joinedload(Review.file_attachments)
+        ).first()
 
 
 review = CRUDReview(Review)

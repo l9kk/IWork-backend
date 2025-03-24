@@ -1,14 +1,13 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from datetime import datetime
 
 from app.db.base import get_db
 from app import crud
 from app.models.review import ReviewStatus
 from app.models.user import User
-from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse, AdminReviewResponse
-from app.core.dependencies import get_current_user, get_current_admin_user
+from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse
+from app.core.dependencies import get_current_user
 from app.utils.redis_cache import RedisClient, get_redis
 from app.services.ai_scanner import scan_review_content
 from app.core.config import settings
@@ -72,6 +71,7 @@ async def create_review(
     )
 
 
+# Update the get_company_reviews function to include file attachments
 @router.get("/company/{company_id}", response_model=List[ReviewResponse])
 async def get_company_reviews(
         *,
@@ -79,13 +79,14 @@ async def get_company_reviews(
         redis: RedisClient = Depends(get_redis),
         company_id: int,
         skip: int = 0,
-        limit: int = 20
+        limit: int = 20,
+        include_files: bool = Query(False)
 ):
     company = crud.company.get(db, id=company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
-    cache_key = f"company:reviews:{company_id}:{skip}:{limit}"
+    cache_key = f"company:reviews:{company_id}:{skip}:{limit}:{include_files}"
     cached_result = await redis.get(cache_key)
     if cached_result:
         return cached_result
@@ -104,6 +105,10 @@ async def get_company_reviews(
                 if not user_name:
                     user_name = "User"
 
+        file_attachments = []
+        if include_files:
+            file_attachments = crud.file_attachment.get_review_files(db, review_id=review.id)
+
         result.append(ReviewResponse(
             id=review.id,
             company_id=review.company_id,
@@ -117,7 +122,8 @@ async def get_company_reviews(
             recommendations=review.recommendations,
             status=review.status,
             created_at=review.created_at,
-            user_name=user_name
+            user_name=user_name,
+            file_attachments=file_attachments
         ))
 
     # Cache reviews for 1 hour
