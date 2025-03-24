@@ -109,7 +109,10 @@ async def upload_file_to_s3(
             }
         )
 
-        file_url = f"{settings.AWS_S3_ENDPOINT}/{settings.AWS_BUCKET_NAME}/{s3_key}"
+        if settings.USE_CLOUDFRONT and settings.CLOUDFRONT_DOMAIN:
+            file_url = f"https://{settings.CLOUDFRONT_DOMAIN}/{s3_key}"
+        else:
+            file_url = f"https://{settings.AWS_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
 
         return {
             "filename": safe_filename,

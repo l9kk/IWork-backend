@@ -61,6 +61,10 @@ class Settings(BaseModel):
         "ALLOWED_UPLOAD_EXTENSIONS", ".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx"
     ).split(",")
 
+    # CloudFront settings
+    CLOUDFRONT_DOMAIN: str = os.getenv("CLOUDFRONT_DOMAIN", "")
+    USE_CLOUDFRONT: bool = os.getenv("USE_CLOUDFRONT", "True")
+
     class Config:
         env_file = ".env"
         case_sensitive = True
