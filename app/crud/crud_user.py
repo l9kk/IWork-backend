@@ -104,4 +104,49 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.refresh(user)
         return user
 
+    def get_by_oauth_id(self, db: Session, *, provider: str, oauth_id: str) -> Optional[User]:
+        return db.query(User).filter(
+            User.oauth_provider == provider,
+            User.oauth_id == oauth_id
+        ).first()
+
+    def update_oauth_info(
+            self, db: Session, *, user_id: int, provider: str, oauth_id: str, oauth_data: str
+    ) -> User:
+        user = self.get(db, id=user_id)
+        if user:
+            user.oauth_provider = provider
+            user.oauth_id = oauth_id
+            user.oauth_data = oauth_data
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    def create_oauth_user(
+            self, db: Session, *, email: str, first_name: str, last_name: str,
+            profile_image: Optional[str], provider: str, oauth_id: str, oauth_data: str,
+            is_verified: bool = False
+    ) -> User:
+        import secrets
+        import string
+        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
+
+        db_obj = User(
+            email=email,
+            hashed_password=get_password_hash(password),
+            first_name=first_name,
+            last_name=last_name,
+            profile_image=profile_image,
+            is_active=True,
+            is_verified=is_verified,
+            oauth_provider=provider,
+            oauth_id=oauth_id,
+            oauth_data=oauth_data
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
 user = CRUDUser(User)

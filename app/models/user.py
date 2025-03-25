@@ -33,3 +33,7 @@ class User(Base):
     password_reset_at = Column(DateTime(timezone=True), nullable=True)
 
     file_attachments = relationship("FileAttachment", back_populates="user", cascade="all, delete-orphan")
+
+    oauth_provider = Column(String, nullable=True)
+    oauth_id = Column(String, nullable=True, index=True)
+    oauth_data = Column(String, nullable=True) 

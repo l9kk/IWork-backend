@@ -64,6 +64,14 @@ class Settings(BaseModel):
     CLOUDFRONT_DOMAIN: str = os.getenv("CLOUDFRONT_DOMAIN", "")
     USE_CLOUDFRONT: bool = os.getenv("USE_CLOUDFRONT", "True")
 
+    # OAuth Settings
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    GOOGLE_AUTHORIZE_URL: str = os.getenv("GOOGLE_AUTHORIZE_URL")
+    GOOGLE_TOKEN_URL: str = os.getenv("GOOGLE_TOKEN_URL")
+    GOOGLE_USERINFO_URL: str = os.getenv("GOOGLE_USERINFO_URL")
+    OAUTH_REDIRECT_URL: str = os.getenv("OAUTH_REDIRECT_URL")
+
     class Config:
         env_file = ".env"
         case_sensitive = True
