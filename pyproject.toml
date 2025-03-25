@@ -4,6 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Askhat <askhat.ss23@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -29,6 +30,9 @@ boto3 = "^1.37.17"
 authlib = "^1.5.1"
 httpx = "^0.28.1"
 itsdangerous = "^2.2.0"
+yfinance = "^0.2.55"
+requests = "^2.32.3"
+python-dateutil = "^2.9.0.post0"
 
 
 [build-system]

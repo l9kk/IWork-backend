@@ -24,3 +24,5 @@ class Company(Base):
     # Relationships
     reviews = relationship("Review", back_populates="company", cascade="all, delete-orphan")
     salaries = relationship("Salary", back_populates="company", cascade="all, delete-orphan")
+
+    sec_cik = Column(String, nullable=True, index=True)

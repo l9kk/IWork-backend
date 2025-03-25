@@ -1,6 +1,8 @@
 from typing import Optional
 from pydantic import BaseModel
 
+from app.schemas.integrations import StockDataResponse, TaxDataResponse
+
 
 class CompanyBase(BaseModel):
     name: str
@@ -12,7 +14,7 @@ class CompanyBase(BaseModel):
     founded_year: Optional[int] = None
     is_public: bool = False
     stock_symbol: Optional[str] = None
-
+    sec_cik: Optional[str] = None
 
 class CompanyCreate(CompanyBase):
     pass
@@ -40,8 +42,11 @@ class CompanyDetail(CompanyResponse):
     founded_year: Optional[int]
     is_public: bool
     stock_symbol: Optional[str]
+    sec_cik: Optional[str]
     avg_rating: float
     review_count: int
+    stock_data: Optional[StockDataResponse] = None
+    tax_data: Optional[TaxDataResponse] = None
 
     model_config = {
         "from_attributes": True

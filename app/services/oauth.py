@@ -14,7 +14,6 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-# Configure OAuth client
 config = Config(environ={
     "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID,
     "GOOGLE_CLIENT_SECRET": settings.GOOGLE_CLIENT_SECRET
@@ -36,7 +35,6 @@ async def get_google_oauth_url(request: Request) -> str:
         redirect_uri = settings.OAUTH_REDIRECT_URL
         logger.debug(f"Starting OAuth flow with redirect URI: {redirect_uri}")
 
-        # With Authlib, this returns a RedirectResponse
         return await oauth.google.authorize_redirect(request, redirect_uri)
     except Exception as e:
         logger.error(f"Error generating OAuth URL: {e}")

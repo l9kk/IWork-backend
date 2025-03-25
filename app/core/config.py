@@ -72,6 +72,8 @@ class Settings(BaseModel):
     GOOGLE_USERINFO_URL: str = os.getenv("GOOGLE_USERINFO_URL")
     OAUTH_REDIRECT_URL: str = os.getenv("OAUTH_REDIRECT_URL")
 
+    ALPHA_VANTAGE_API_KEY: Optional[str] = os.getenv("ALPHA_VANTAGE_API_KEY")
+
     class Config:
         env_file = ".env"
         case_sensitive = True

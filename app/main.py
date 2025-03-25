@@ -11,7 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.services.token_cleanup import start_token_cleanup_scheduler
 
-from app.api import auth, users, companies, reviews, salaries, search, admin, files, oauth
+from app.api import auth, users, companies, reviews, salaries, search, admin, files, oauth, integrations
 from app.core.config import settings
 from app.db.base import get_db
 from app.utils.redis_cache import get_redis, RedisClient
@@ -83,10 +83,12 @@ async def add_request_id(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
+
 app.include_router(auth.router, tags=["auth"])
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 app.include_router(users.router, prefix= "/users", tags=["users"])
 app.include_router(companies.router, prefix="/companies", tags=["companies"])
+app.include_router(integrations.router, prefix="/integrations", tags=["Stocks and Taxes"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(salaries.router, prefix="/salaries", tags=["salaries"])
 app.include_router(search.router, prefix="/search", tags=["search"])
