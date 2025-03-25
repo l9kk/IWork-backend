@@ -6,9 +6,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 import asyncio
+
+from starlette.middleware.sessions import SessionMiddleware
+
 from app.services.token_cleanup import start_token_cleanup_scheduler
 
-from app.api import auth, users, companies, reviews, salaries, search, admin, files
+from app.api import auth, users, companies, reviews, salaries, search, admin, files, oauth
 from app.core.config import settings
 from app.db.base import get_db
 from app.utils.redis_cache import get_redis, RedisClient
@@ -19,6 +22,8 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 app.add_middleware(
     CORSMiddleware,
@@ -79,13 +84,14 @@ async def add_request_id(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 app.include_router(auth.router, tags=["auth"])
+app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 app.include_router(users.router, prefix= "/users", tags=["users"])
 app.include_router(companies.router, prefix="/companies", tags=["companies"])
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(salaries.router, prefix="/salaries", tags=["salaries"])
 app.include_router(search.router, prefix="/search", tags=["search"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
-app.include_router(files.router, prefix=f"/files", tags=["files"])
+app.include_router(files.router, prefix="/files", tags=["files"])
 
 @app.on_event("startup")
 async def start_scheduler():
