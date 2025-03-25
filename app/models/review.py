@@ -1,7 +1,9 @@
 from enum import Enum as PyEnum
-from sqlalchemy import Boolean, Column, Integer, String, Float, Text, DateTime, ForeignKey, Enum
+from sqlalchemy import Boolean, Column, Integer, String, Float, Text, DateTime, ForeignKey, Enum, Index
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import TSVECTOR
+
 
 from app.db.base import Base
 
@@ -49,6 +51,12 @@ class Review(Base):
     moderation_notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    search_vector = Column(TSVECTOR, nullable=True)
+
+    __table_args__ = (
+        Index('idx_review_search_vector', search_vector, postgresql_using='gin'),
+    )
 
     # Relationships
     user = relationship("User", back_populates="reviews")

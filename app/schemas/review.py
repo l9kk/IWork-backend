@@ -74,6 +74,7 @@ class ReviewResponse(BaseModel):
     created_at: datetime
     user_name: Optional[str] = None
     file_attachments: Optional[List[FileAttachmentResponse]] = []
+    highlight: Optional[str] = None
 
     model_config = {
         "from_attributes": True

@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, Index
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -20,6 +21,12 @@ class Company(Base):
     stock_symbol = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    search_vector = Column(TSVECTOR, nullable=True)
+
+    __table_args__ = (
+        Index('idx_company_search_vector', search_vector, postgresql_using='gin'),
+    )
 
     # Relationships
     reviews = relationship("Review", back_populates="company", cascade="all, delete-orphan")
