@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash, verify_password
 from app.crud.base import CRUDBase
-from app.models.user import User
+from app.models import User
+from app.models.user import User, EmailChangeVerification
 from app.schemas.user import UserCreate, UserUpdate
 
 
@@ -148,5 +149,62 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def create_email_change_verification(
+            self, db: Session, *, user_id: int, new_email: str
+    ) -> EmailChangeVerification:
+        import secrets
+        import string
+        from datetime import datetime, timedelta
+
+        verification_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(6))
+
+        expires_at = datetime.now() + timedelta(hours=24)
+
+        db.query(EmailChangeVerification).filter(
+            EmailChangeVerification.user_id == user_id
+        ).delete()
+
+        db_obj = EmailChangeVerification(
+            user_id=user_id,
+            new_email=new_email,
+            verification_code=verification_code,
+            expires_at=expires_at
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
+    def verify_email_change(
+            self, db: Session, *, user_id: int, verification_code: str
+    ) -> Optional[EmailChangeVerification]:
+        from datetime import datetime
+
+        verification = db.query(EmailChangeVerification).filter(
+            EmailChangeVerification.user_id == user_id,
+            EmailChangeVerification.verification_code == verification_code,
+            EmailChangeVerification.expires_at > datetime.now()
+        ).first()
+
+        return verification
+
+    def complete_email_change(
+            self, db: Session, *, user_id: int, new_email: str
+    ) -> User | None:
+        user = self.get(db, id=user_id)
+        if not user:
+            return None
+
+        user.email = new_email
+        db.add(user)
+
+        db.query(EmailChangeVerification).filter(
+            EmailChangeVerification.user_id == user_id
+        ).delete()
+
+        db.commit()
+        db.refresh(user)
+        return user
 
 user = CRUDUser(User)

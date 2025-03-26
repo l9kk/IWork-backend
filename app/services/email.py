@@ -210,3 +210,26 @@ async def send_review_rejected_email(
         template_name="review_rejected.html",
         template_data=template_data
     )
+
+
+async def send_email_change_verification(
+    user_email: str, 
+    user_first_name: str, 
+    verification_code: str
+) -> None:
+    """
+    Send an email with verification code for email change.
+    """
+    subject = "Verify your email change request"
+    template_data = {
+        "user": {"first_name": user_first_name},
+        "verification_code": verification_code,
+        "expire_hours": 24
+    }
+
+    await send_email(
+        email_to=[user_email],
+        subject=subject,
+        template_name="email_change.html",
+        template_data=template_data
+    )

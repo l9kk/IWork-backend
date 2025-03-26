@@ -89,3 +89,21 @@ class UserAccountManage(BaseModel):
         if isinstance(v, str) and v:
             return v
         return v
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+    @validator('new_password')
+    def password_min_length(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters')
+        return v
+
+class EmailChangeRequest(BaseModel):
+    new_email: EmailStr
+    password: str
+
+class EmailChangeConfirm(BaseModel):
+    verification_code: str
