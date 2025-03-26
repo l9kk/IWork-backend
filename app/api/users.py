@@ -5,18 +5,29 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app import crud
 from app.models.user import User
-from app.schemas.user import User as UserSchema, UserUpdate
+from app.schemas.user import User as UserSchema, UserUpdate, UserResponse, UserAccountManage
 from app.schemas.settings import AccountSettingsUpdate, AccountSettingsResponse
-from app.core.dependencies import get_current_user, get_current_admin_user
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 
 
-@router.get("/me", response_model=UserSchema)
+@router.get("/me", response_model=UserResponse)
 def read_user_me(
         current_user: User = Depends(get_current_user),
 ) -> Any:
-    return current_user
+    user_data = {
+        "id": current_user.id,
+        "email": current_user.email,
+        "is_active": current_user.is_active,
+        "full_name": f"{current_user.first_name} {current_user.last_name}".strip(),
+        "job_title": current_user.job_title,
+        "profile_image": current_user.profile_image,
+        "created_at": current_user.created_at,
+        "is_currently_employed": bool(current_user.job_title)
+    }
+
+    return user_data
 
 
 @router.put("/me", response_model=UserSchema)
@@ -71,3 +82,19 @@ def update_user_settings(
     )
 
     return settings
+
+
+@router.get("/me/account", response_model=UserAccountManage)
+def get_account_management(
+    *,
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    return UserAccountManage(
+        id=current_user.id,
+        email=current_user.email,
+        profile_image=current_user.profile_image,
+        full_name=f"{current_user.first_name} {current_user.last_name}".strip(),
+        job_title=current_user.job_title,
+        is_active=current_user.is_active,
+        created_at=current_user.created_at
+    )

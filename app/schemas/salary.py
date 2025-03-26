@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, validator
 from datetime import datetime
 
@@ -66,3 +66,12 @@ class SalaryStatistics(BaseModel):
     max_salary: float
     sample_size: int
     currency: str
+
+
+class UserSalariesResponse(BaseModel):
+    total_count: int
+    salaries: List[SalaryResponse]
+
+    model_config = {
+        "from_attributes": True
+    }

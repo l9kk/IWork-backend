@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app import crud
-from app.models.review import ReviewStatus
+from app.models.review import ReviewStatus, Review
 from app.models.user import User
-from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse
+from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse, UserReviewsResponse
 from app.core.dependencies import get_current_user
 from app.utils.redis_cache import RedisClient, get_redis
 from app.services.ai_scanner import scan_review_content
@@ -132,7 +132,7 @@ async def get_company_reviews(
     return result
 
 
-@router.get("/user/me", response_model=List[ReviewResponse])
+@router.get("/user/me", response_model=UserReviewsResponse)
 async def get_my_reviews(
         *,
         db: Session = Depends(get_db),
@@ -140,6 +140,8 @@ async def get_my_reviews(
         skip: int = 0,
         limit: int = 50
 ):
+    total_count = db.query(Review).filter(Review.user_id == current_user.id).count()
+
     reviews = crud.review.get_user_reviews(
         db, user_id=current_user.id, skip=skip, limit=limit
     )
@@ -165,7 +167,10 @@ async def get_my_reviews(
             user_name=f"{current_user.first_name} {current_user.last_name}".strip() or "User"
         ))
 
-    return result
+    return UserReviewsResponse(
+        total_count=total_count,
+        reviews=result
+    )
 
 
 @router.put("/{review_id}", response_model=ReviewResponse)

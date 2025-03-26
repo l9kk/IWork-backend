@@ -51,3 +51,41 @@ class User(UserInDBBase):
 
 class UserInDB(UserInDBBase):
     hashed_password: str
+
+
+class UserResponse(UserInDBBase):
+    full_name: str
+    is_currently_employed: bool = False
+
+    class Config:
+        orm_mode = True
+
+    @validator('full_name', pre=True, always=True)
+    def set_full_name(cls, v, values):
+        if v:
+            return v
+        first_name = values.get('first_name', '')
+        last_name = values.get('last_name', '')
+        if first_name or last_name:
+            return f"{first_name} {last_name}".strip()
+        return ""
+
+
+class UserAccountManage(BaseModel):
+    id: int
+    email: str
+    profile_image: Optional[str] = None
+    full_name: str
+    job_title: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True
+    }
+
+    @validator('full_name', pre=True, always=True)
+    def set_full_name(cls, v, values):
+        if isinstance(v, str) and v:
+            return v
+        return v

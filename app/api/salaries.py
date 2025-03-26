@@ -8,7 +8,7 @@ from app import crud
 from app.models import Company
 from app.models.salary import ExperienceLevel, EmploymentType, Salary
 from app.models.user import User
-from app.schemas.salary import SalaryCreate, SalaryUpdate, SalaryResponse, SalaryStatistics
+from app.schemas.salary import SalaryCreate, SalaryUpdate, SalaryResponse, SalaryStatistics, UserSalariesResponse
 from app.core.dependencies import get_current_user
 from app.utils.redis_cache import RedisClient, get_redis
 from app.services.salary_analytics import SalaryAnalyticsService
@@ -345,7 +345,7 @@ async def advanced_salary_search(
     return response
 
 
-@router.get("/user/me", response_model=List[SalaryResponse])
+@router.get("/user/me", response_model=UserSalariesResponse)
 async def get_my_salaries(
         *,
         db: Session = Depends(get_db),
@@ -353,6 +353,8 @@ async def get_my_salaries(
         skip: int = 0,
         limit: int = 50
 ):
+    total_count = db.query(Salary).filter(Salary.user_id == current_user.id).count()
+
     salaries = crud.salary.get_user_salaries(
         db, user_id=current_user.id, skip=skip, limit=limit
     )
@@ -375,7 +377,10 @@ async def get_my_salaries(
             created_at=salary.created_at
         ))
 
-    return result
+    return UserSalariesResponse(
+        total_count=total_count,
+        salaries=result
+    )
 
 
 @router.put("/{salary_id}", response_model=SalaryResponse)

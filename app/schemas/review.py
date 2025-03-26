@@ -95,3 +95,11 @@ class AdminReviewResponse(ReviewResponse):
     moderation_notes: Optional[str] = None
     ai_scanner_flags: List[Dict[str, Any]] = []
 
+class UserReviewsResponse(BaseModel):
+    total_count: int
+    reviews: List[ReviewResponse]
+
+    model_config = {
+        "from_attributes": True
+    }
+
