@@ -36,4 +36,6 @@ class User(Base):
 
     oauth_provider = Column(String, nullable=True)
     oauth_id = Column(String, nullable=True, index=True)
-    oauth_data = Column(String, nullable=True) 
+    oauth_data = Column(String, nullable=True)
+
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")

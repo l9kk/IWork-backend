@@ -1,14 +1,17 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app import crud
-from app.models.salary import ExperienceLevel, EmploymentType
+from app.models import Company
+from app.models.salary import ExperienceLevel, EmploymentType, Salary
 from app.models.user import User
 from app.schemas.salary import SalaryCreate, SalaryUpdate, SalaryResponse, SalaryStatistics
 from app.core.dependencies import get_current_user
 from app.utils.redis_cache import RedisClient, get_redis
+from app.services.salary_analytics import SalaryAnalyticsService
 
 router = APIRouter()
 
@@ -135,6 +138,211 @@ async def get_salary_statistics(
     await redis.set(cache_key, result, expire=10800)
 
     return result
+
+
+@router.get("/analytics/breakdown", response_model=Dict[str, Any])
+async def get_salary_breakdown(
+        *,
+        db: Session = Depends(get_db),
+        redis: RedisClient = Depends(get_redis),
+        job_title: Optional[str] = None,
+        company_id: Optional[int] = None,
+        industry: Optional[str] = None,
+        location: Optional[str] = None,
+        currency: str = "USD"
+):
+    """
+    Get detailed salary breakdown by various dimensions:
+    - Overall statistics
+    - By experience level
+    - By employment type
+    - By location
+    - By industry
+    """
+
+    cache_key = f"salary:breakdown:{job_title}:{company_id}:{industry}:{location}:{currency}"
+
+    # Try to get from cache
+    cached_result = await redis.get(cache_key)
+    if cached_result:
+        return cached_result
+
+    result = SalaryAnalyticsService.get_detailed_salary_breakdown(
+        db, job_title, company_id, industry, location, currency
+    )
+
+    # Cache for 1 hour
+    await redis.set(cache_key, result, expire=3600)
+
+    return result
+
+
+@router.get("/analytics/compare", response_model=Dict[str, Any])
+async def get_salary_comparison(
+        *,
+        db: Session = Depends(get_db),
+        redis: RedisClient = Depends(get_redis),
+        job_title: str,
+        company_id: Optional[int] = None,
+        location: Optional[str] = None,
+        experience_level: Optional[ExperienceLevel] = None,
+        employment_type: Optional[EmploymentType] = None,
+        currency: str = "USD"
+):
+    """
+    Get comparative salary analysis:
+    - Company vs. industry average
+    - Location vs. national average
+    """
+
+    cache_key = f"salary:compare:{job_title}:{company_id}:{location}:{experience_level}:{employment_type}:{currency}"
+
+    # Try to get from cache
+    cached_result = await redis.get(cache_key)
+    if cached_result:
+        return cached_result
+
+    result = SalaryAnalyticsService.get_comparative_analysis(
+        db, job_title, company_id, location, experience_level, employment_type, currency
+    )
+
+    # Cache for 1 hour
+    await redis.set(cache_key, result, expire=3600)
+
+    return result
+
+
+@router.get("/search", response_model=Dict[str, Any])
+async def advanced_salary_search(
+        *,
+        db: Session = Depends(get_db),
+        redis: RedisClient = Depends(get_redis),
+        query: Optional[str] = None,
+        job_titles: Optional[List[str]] = Query(None),
+        company_ids: Optional[List[int]] = Query(None),
+        industries: Optional[List[str]] = Query(None),
+        locations: Optional[List[str]] = Query(None),
+        experience_levels: Optional[List[ExperienceLevel]] = Query(None),
+        employment_types: Optional[List[EmploymentType]] = Query(None),
+        min_salary: Optional[float] = None,
+        max_salary: Optional[float] = None,
+        currency: str = "USD",
+        sort_by: str = "recency",
+        skip: int = 0,
+        limit: int = 20
+):
+    """
+    Advanced salary search with multiple selection filters and sorting options.
+    """
+    cache_key = (
+        f"salary:search:{query}:{','.join(job_titles or [])}:{','.join([str(id) for id in company_ids or []])}:"
+        f"{','.join(industries or [])}:{','.join(locations or [])}:"
+        f"{','.join([level.value for level in experience_levels or []])}:"
+        f"{','.join([type.value for type in employment_types or []])}:"
+        f"{min_salary}:{max_salary}:{currency}:{sort_by}:{skip}:{limit}"
+    )
+
+    # Try to get from cache
+    cached_result = await redis.get(cache_key)
+    if cached_result:
+        return cached_result
+
+    salary_query = db.query(Salary)
+
+    if query:
+        salary_query = salary_query.filter(Salary.job_title.ilike(f"%{query}%"))
+
+    if job_titles and len(job_titles) > 0:
+        job_title_filters = []
+        for title in job_titles:
+            job_title_filters.append(Salary.job_title.ilike(f"%{title}%"))
+        salary_query = salary_query.filter(or_(*job_title_filters))
+
+    if company_ids and len(company_ids) > 0:
+        salary_query = salary_query.filter(Salary.company_id.in_(company_ids))
+
+    if industries and len(industries) > 0:
+        salary_query = salary_query.join(Company, Salary.company_id == Company.id)
+        industry_filters = []
+        for industry in industries:
+            industry_filters.append(Company.industry.ilike(f"%{industry}%"))
+        salary_query = salary_query.filter(or_(*industry_filters))
+
+    if locations and len(locations) > 0:
+        location_filters = []
+        for location in locations:
+            location_filters.append(Salary.location.ilike(f"%{location}%"))
+        salary_query = salary_query.filter(or_(*location_filters))
+
+    if experience_levels and len(experience_levels) > 0:
+        salary_query = salary_query.filter(Salary.experience_level.in_(experience_levels))
+
+    if employment_types and len(employment_types) > 0:
+        salary_query = salary_query.filter(Salary.employment_type.in_(employment_types))
+
+    if min_salary is not None:
+        salary_query = salary_query.filter(Salary.salary_amount >= min_salary)
+
+    if max_salary is not None:
+        salary_query = salary_query.filter(Salary.salary_amount <= max_salary)
+
+    salary_query = salary_query.filter(Salary.currency == currency)
+
+    total_count = salary_query.count()
+
+    if sort_by == "salary_high_to_low":
+        salary_query = salary_query.order_by(Salary.salary_amount.desc())
+    elif sort_by == "salary_low_to_high":
+        salary_query = salary_query.order_by(Salary.salary_amount.asc())
+    else:  # Default to recency
+        salary_query = salary_query.order_by(Salary.created_at.desc())
+
+    salary_query = salary_query.offset(skip).limit(limit)
+
+    salaries = salary_query.all()
+
+    results = []
+    for salary in salaries:
+        company = crud.company.get(db, id=salary.company_id)
+        company_name = company.name if company else "Unknown Company"
+
+        results.append({
+            "id": salary.id,
+            "company_id": salary.company_id,
+            "company_name": company_name,
+            "job_title": salary.job_title,
+            "salary_amount": salary.salary_amount,
+            "currency": salary.currency,
+            "experience_level": salary.experience_level.value,
+            "employment_type": salary.employment_type.value,
+            "location": salary.location,
+            "created_at": salary.created_at.isoformat()
+        })
+
+    response = {
+        "results": results,
+        "total": total_count,
+        "filters_applied": {
+            "query": query,
+            "job_titles": job_titles,
+            "company_ids": company_ids,
+            "industries": industries,
+            "locations": locations,
+            "experience_levels": [level.value for level in experience_levels] if experience_levels else None,
+            "employment_types": [type.value for type in employment_types] if employment_types else None,
+            "min_salary": min_salary,
+            "max_salary": max_salary,
+            "currency": currency
+        },
+        "sort_by": sort_by,
+        "skip": skip,
+        "limit": limit
+    }
+
+    # Cache for 15 minutes
+    await redis.set(cache_key, response, expire=900)
+
+    return response
 
 
 @router.get("/user/me", response_model=List[SalaryResponse])
