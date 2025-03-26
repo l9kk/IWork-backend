@@ -77,7 +77,10 @@ class ReviewResponse(BaseModel):
     highlight: Optional[str] = None
 
     model_config = {
-        "from_attributes": True
+        "from_attributes": True,
+        "json_encoders": {
+            datetime: lambda dt: dt.isoformat()
+        }
     }
 
 
@@ -91,3 +94,4 @@ class AdminReviewResponse(ReviewResponse):
     user_id: int
     moderation_notes: Optional[str] = None
     ai_scanner_flags: List[Dict[str, Any]] = []
+

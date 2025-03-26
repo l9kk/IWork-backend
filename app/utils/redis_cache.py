@@ -2,6 +2,7 @@ from typing import Any, Optional, Dict, List
 import json
 from upstash_redis import Redis
 from app.core.config import settings
+from pydantic import BaseModel
 
 
 class RedisClient:
@@ -24,6 +25,14 @@ class RedisClient:
 
     async def set(self, key: str, value: Any, expire: Optional[int] = None) -> None:
         """Set value in Redis with optional expiration, serializing to JSON if needed."""
+        # Handle Pydantic models
+        if isinstance(value, BaseModel):
+            # Convert Pydantic model to dict
+            if hasattr(value, "model_dump"):
+                value = value.model_dump()  # Pydantic v2
+            else:
+                value = value.dict()  # Pydantic v1
+        
         if isinstance(value, (dict, list)):
             value = json.dumps(value)
 

@@ -1,9 +1,12 @@
+import unittest.mock
 from typing import Dict, Generator, Callable, Any, AsyncGenerator
 
+import re
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
+from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy_utils import database_exists, create_database, drop_database
@@ -16,10 +19,38 @@ from app.models.company import Company
 from app.models.review import Review, ReviewStatus
 from app.models.salary import Salary, ExperienceLevel, EmploymentType
 from app.core.security import get_password_hash
+from tests.mocks import MockEmailService, AsyncMockSendEmail
 
 TEST_DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI.replace(
     "iwork", "iwork_test"
 )
+
+username = "postgres_test"
+password = "postgres_test"
+
+user_pass_match = re.search(r'//([^:]+):([^@]+)@', TEST_DATABASE_URL)
+if user_pass_match:
+    username, password = user_pass_match.groups()
+
+TEST_DATABASE_URL = re.sub(
+    r'//([^:]+):([^@]+)@',
+    f'//{username}:{password}@',
+    TEST_DATABASE_URL
+)
+
+TEST_DATABASE_URL = re.sub(
+    r'\?sslmode=require',
+    '?sslmode=disable',
+    TEST_DATABASE_URL
+)
+
+if 'sslmode=' not in TEST_DATABASE_URL:
+    if '?' in TEST_DATABASE_URL:
+        TEST_DATABASE_URL += "&sslmode=disable"
+    else:
+        TEST_DATABASE_URL += "?sslmode=disable"
+
+print(f"Using test database URL: {TEST_DATABASE_URL}")
 
 engine = create_engine(TEST_DATABASE_URL)
 
@@ -74,20 +105,44 @@ def client(override_get_db) -> Generator:
 @pytest.fixture
 def mock_redis():
     class MockRedisClient:
+        _storage = {}
+
         async def get(self, key):
-            return None
+            if key not in self._storage:
+                return None
+            value, _ = self._storage[key]
+            return value
 
         async def set(self, key, value, expire=None):
-            pass
+            """Enhanced set method that handles Pydantic models"""
+            try:
+                # Handle Pydantic models
+                if hasattr(value, "model_dump") and callable(value.model_dump):
+                    # Pydantic v2+
+                    value = value.model_dump()
+                elif hasattr(value, "dict") and callable(value.dict):
+                    # Pydantic v1
+                    value = value.dict()
+                
+                self._storage[key] = (value, expire)
+                return True
+            except Exception as e:
+                print(f"Error in mock redis set: {e}")
+                return True
 
         async def delete(self, key):
-            pass
+            if key in self._storage:
+                del self._storage[key]
+            return True
 
         async def delete_pattern(self, pattern):
-            pass
+            pattern = pattern.rstrip("*")
+            keys_to_delete = [k for k in self._storage.keys() if k.startswith(pattern)]
+            for key in keys_to_delete:
+                del self._storage[key]
+            return len(keys_to_delete)
 
     return MockRedisClient()
-
 
 @pytest.fixture
 def override_get_redis(mock_redis):
@@ -134,10 +189,17 @@ def test_admin(db: Session) -> User:
         "is_verified": True,
     }
 
-    admin = User(**admin_data)
-    db.add(admin)
-    db.commit()
-    db.refresh(admin)
+    admin = db.query(User).filter(User.email == admin_data["email"]).first()
+    if not admin:
+        admin = User(**admin_data)
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+    else:
+        admin.is_admin = True
+        db.commit()
+        db.refresh(admin)
+
     return admin
 
 
@@ -245,3 +307,13 @@ async def async_client(override_get_db, override_get_redis) -> AsyncGenerator[As
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
+
+@pytest.fixture(autouse=True)
+def mock_email_verification():
+    """
+    Mock the email verification service to prevent database SSL issues during tests
+    """
+    with unittest.mock.patch("app.api.auth.send_verification_email", MockEmailService.send_verification_email), \
+         unittest.mock.patch("app.api.auth.send_password_reset_email", MockEmailService.send_password_reset_email), \
+         unittest.mock.patch("app.services.email.send_email", new_callable=AsyncMockSendEmail):
+        yield

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
 
@@ -49,5 +50,9 @@ class CompanyDetail(CompanyResponse):
     tax_data: Optional[TaxDataResponse] = None
 
     model_config = {
-        "from_attributes": True
+        "from_attributes": True,
+        "json_encoders": {
+            datetime: lambda v: v.isoformat() if v else None
+        },
+        "arbitrary_types_allowed": True
     }

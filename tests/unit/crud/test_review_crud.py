@@ -22,7 +22,7 @@ def test_create_review_with_owner(db: Session, test_user, test_company):
     assert review.company_id == test_company.id
     assert review.user_id == test_user.id
     assert review.rating == 3.5
-    assert review.employee_status == "CURRENT"
+    assert review.employee_status == EmployeeStatus.CURRENT
     assert review.pros == "Good work environment"
     assert review.status == ReviewStatus.PENDING
     assert review.is_anonymous is True

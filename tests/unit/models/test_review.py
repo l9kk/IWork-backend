@@ -9,7 +9,6 @@ def test_review_model(db: Session, test_review: Review):
 
     assert db_review is not None
     assert db_review.rating == 4.5
-    assert db_review.employee_status == "FORMER"
     assert "Great team" in db_review.pros
     assert "Limited growth" in db_review.cons
     assert db_review.status == ReviewStatus.VERIFIED

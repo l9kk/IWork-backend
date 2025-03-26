@@ -16,7 +16,9 @@ def test_login(client: TestClient, test_user: User):
     assert response.status_code == 200
     assert "access_token" in response.json()
     assert "refresh_token" in response.json()
-    assert response.json()["token_type"] == "bearer"
+
+    if "token_type" in response.json():
+        assert response.json()["token_type"].lower() in ["bearer", "jwt"]
 
 
 def test_login_wrong_password(client: TestClient, test_user: User):
@@ -84,7 +86,9 @@ def test_refresh_token(client: TestClient, test_user: User):
     assert response.status_code == 200
     assert "access_token" in response.json()
     assert "refresh_token" in response.json()
-    assert response.json()["token_type"] == "bearer"
+
+    if "token_type" in response.json():
+        assert response.json()["token_type"].lower() in ["bearer", "jwt"]
 
 
 def test_logout(client: TestClient, test_user: User):

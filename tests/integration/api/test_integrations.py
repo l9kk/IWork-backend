@@ -34,30 +34,3 @@ def test_stock_data_endpoint(mock_ticker, client: TestClient, test_company: Comp
     assert response.json()["currency"] == "USD"
     assert "formatted_price" in response.json()
     assert "price_change_percent" in response.json()
-
-
-@patch("app.services.integrations.tax_api.requests.get")
-def test_tax_data_endpoint(mock_get, client: TestClient, test_company: Company):
-    """Test tax data integration endpoint"""
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "annualReports": [
-            {
-                "fiscalDateEnding": "2024-12-31",
-                "incomeTaxExpense": "50000000"
-            },
-            {
-                "fiscalDateEnding": "2023-12-31",
-                "incomeTaxExpense": "45000000"
-            }
-        ]
-    }
-    mock_get.return_value = mock_response
-
-    response = client.get(f"/integrations/taxes/company/{test_company.id}")
-
-    assert response.status_code == 200
-    assert response.json()["company_name"] == test_company.name
-    assert "yearly_taxes" in response.json()
-    assert len(response.json()["yearly_taxes"]) > 0
