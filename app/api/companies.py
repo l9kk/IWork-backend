@@ -82,8 +82,8 @@ async def create_company(
     return company
 
 
-@router.get("/advanced-search", response_model=Dict[str, Any])
-async def advanced_company_search(
+@router.get("/search", response_model=Dict[str, Any])
+async def company_search(
         *,
         db: Session = Depends(get_db),
         redis: RedisClient = Depends(get_redis),

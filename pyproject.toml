@@ -35,6 +35,41 @@ python-dateutil = "^2.9.0.post0"
 uvicorn = "^0.34.0"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+pytest-asyncio = "^0.26.0"
+httpx = "^0.28.1"
+pytest-mock = "^3.14.0"
+sqlalchemy-utils = "^0.41.2"
+faker = "^37.1.0"
+factory-boy = "^3.3.3"
+pytest-env = "^1.1.5"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["tests/*", "migrations/*", "alembic/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
