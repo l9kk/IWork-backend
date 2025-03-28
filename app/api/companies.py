@@ -12,6 +12,7 @@ from app.models.review import ReviewStatus
 from app.models.user import User
 from app.services.search import SearchService
 from app.utils.redis_cache import RedisClient, get_redis
+from app.utils.formatters import format_currency
 from app.schemas.company import CompanyCreate, CompanyUpdate, CompanyResponse, CompanyDetail, CompanyFinancials
 from app.services.integrations.stock_api import StockAPIService
 from app.services.integrations.tax_api import TaxAPIService
@@ -48,7 +49,6 @@ async def get_companies(
     - sort_by: Sort results by relevance, rating, etc.
     - skip, limit: Pagination parameters
     """
-    # Create cache key based on parameters
     cache_key = (
         f"companies:unified:v2:{company_name}:{job_title}:{','.join(industries or [])}:{','.join(locations or [])}:"
         f"{min_rating}:{sort_by}:{autocomplete}:{skip}:{limit}"
@@ -59,13 +59,11 @@ async def get_companies(
     if cached_result:
         return cached_result
 
-    # Subquery to count salaries for each company
     salary_count_subquery = db.query(
         Salary.company_id,
         func.count(distinct(Salary.id)).label("salary_count")
     ).group_by(Salary.company_id).subquery()
 
-    # Base query joining with reviews for rating filters and counts, and salaries for salary counts
     company_query = db.query(
         Company,
         func.coalesce(func.avg(Review.rating), 0).label("avg_rating"),
@@ -80,17 +78,13 @@ async def get_companies(
         salary_count_subquery, Company.id == salary_count_subquery.c.company_id
     ).group_by(Company.id, salary_count_subquery.c.salary_count)
     
-    # Handle company name search with autocomplete if needed
     if company_name and company_name.strip():
         if autocomplete:
-            # For autocomplete, use prefix matching (ILIKE with trailing %)
             company_query = company_query.filter(Company.name.ilike(f"{company_name}%"))
         else:
-            # For regular search, use full-text search
             tsquery = func.plainto_tsquery('english', company_name)
             company_query = company_query.filter(Company.search_vector.op('@@')(tsquery))
     
-    # Handle job title search by joining with Salary table
     if job_title and job_title.strip():
         job_title_subquery = db.query(
             Salary.company_id
@@ -103,29 +97,24 @@ async def get_companies(
             Company.id == job_title_subquery.c.company_id
         )
     
-    # Apply industry filters
     if industries and len(industries) > 0:
         industry_filters = []
         for industry in industries:
             industry_filters.append(Company.industry.ilike(f"%{industry}%"))
         company_query = company_query.filter(or_(*industry_filters))
 
-    # Apply location filters
     if locations and len(locations) > 0:
         location_filters = []
         for location in locations:
             location_filters.append(Company.location.ilike(f"%{location}%"))
         company_query = company_query.filter(or_(*location_filters))
 
-    # Apply rating filter
     if min_rating is not None:
         company_query = company_query.having(func.coalesce(func.avg(Review.rating), 0) >= min_rating)
 
-    # Get total count before pagination
     count_query = company_query.subquery()
     total_count = db.query(func.count()).select_from(count_query).scalar()
 
-    # Apply sorting
     if sort_by == "relevance" and company_name and company_name.strip() and not autocomplete:
         tsquery = func.plainto_tsquery('english', company_name)
         company_query = company_query.order_by(
@@ -144,17 +133,14 @@ async def get_companies(
     elif sort_by == "name_asc":
         company_query = company_query.order_by(Company.name.asc())
     else:
-        # Default sorting for autocomplete results is by name
         if autocomplete:
             company_query = company_query.order_by(Company.name.asc())
         else:
             company_query = company_query.order_by(Company.name.asc())
 
-    # Apply pagination
     company_query = company_query.offset(skip).limit(limit)
     query_results = company_query.all()
 
-    # Format results
     results = []
     for company, avg_rating, review_count, salary_count in query_results:
         highlight = None
@@ -271,7 +257,7 @@ async def get_company(
             estimated_revenue = tax_amount * 4 * 6.67
             
             result.annual_revenue = estimated_revenue
-            result.annual_revenue_formatted = _format_currency(estimated_revenue)
+            result.annual_revenue_formatted = format_currency(estimated_revenue)
             logger.info(f"Calculated annual revenue: {result.annual_revenue_formatted}")
         else:
             logger.warning(f"No yearly tax data available for company {company_id}")
@@ -452,7 +438,7 @@ async def get_company_financials(
             estimated_revenue = tax_amount * 4 * 6.67
             
             result.annual_revenue = estimated_revenue
-            result.annual_revenue_formatted = _format_currency(estimated_revenue)
+            result.annual_revenue_formatted = format_currency(estimated_revenue)
             
             if len(tax_data.get("yearly_taxes")) > 1:
                 revenue_trend = []
@@ -462,7 +448,7 @@ async def get_company_financials(
                     revenue_trend.append({
                         "year": tax_entry.get("year"),
                         "revenue": year_revenue,
-                        "revenue_formatted": _format_currency(year_revenue)
+                        "revenue_formatted": format_currency(year_revenue)
                     })
                 result.revenue_trend = revenue_trend
             
@@ -538,13 +524,3 @@ async def update_company(
     await redis.delete_pattern("companies:list*")
 
     return company
-
-def _format_currency(amount: float) -> str:
-    if amount >= 1_000_000_000:
-        return f"${amount / 1_000_000_000:.2f} billion"
-    elif amount >= 1_000_000:
-        return f"${amount / 1_000_000:.2f} million"
-    elif amount >= 1_000:
-        return f"${amount / 1_000:.2f} thousand"
-    else:
-        return f"${amount:.2f}"

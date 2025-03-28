@@ -5,6 +5,7 @@ import yfinance as yf
 
 from fastapi import HTTPException, status
 from app.utils.redis_cache import RedisClient
+from app.utils.formatters import format_large_number
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ class StockAPIService:
 
             # Add formatted market cap
             if stock_data["market_cap"]:
-                stock_data["formatted_market_cap"] = self._format_large_number(stock_data["market_cap"])
+                stock_data["formatted_market_cap"] = format_large_number(stock_data["market_cap"])
             else:
                 stock_data["formatted_market_cap"] = "N/A"
 
@@ -136,14 +137,3 @@ class StockAPIService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to fetch historical stock data: {str(e)}"
             )
-
-    def _format_large_number(self, number: float) -> str:
-        """Format large numbers in a human-readable way (e.g., 1.2B, 345.6M)"""
-        if number >= 1_000_000_000:
-            return f"{number / 1_000_000_000:.1f}B"
-        elif number >= 1_000_000:
-            return f"{number / 1_000_000:.1f}M"
-        elif number >= 1_000:
-            return f"{number / 1_000:.1f}K"
-        else:
-            return str(number)

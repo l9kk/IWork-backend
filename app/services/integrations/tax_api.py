@@ -3,6 +3,7 @@ import requests
 from typing import Dict, Any, Optional
 from datetime import datetime
 from app.utils.redis_cache import RedisClient
+from app.utils.formatters import format_currency
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +101,7 @@ class TaxAPIService:
                                         yearly_taxes.append({
                                             "year": year,
                                             "amount": value,
-                                            "formatted_amount": self._format_currency(value),
+                                            "formatted_amount": format_currency(value),
                                             "source": "SEC EDGAR"
                                         })
 
@@ -152,7 +153,7 @@ class TaxAPIService:
                         yearly_taxes.append({
                             "year": year,
                             "amount": tax_expense,
-                            "formatted_amount": self._format_currency(tax_expense),
+                            "formatted_amount": format_currency(tax_expense),
                             "source": "Alpha Vantage"
                         })
 
@@ -195,7 +196,7 @@ class TaxAPIService:
             yearly_taxes.append({
                 "year": str(year),
                 "amount": round(tax_amount, 2),
-                "formatted_amount": self._format_currency(tax_amount),
+                "formatted_amount": format_currency(tax_amount),
                 "source": "Estimated"
             })
 
@@ -206,14 +207,3 @@ class TaxAPIService:
             "retrieved_at": datetime.now().isoformat(),
             "note": "These tax figures are estimated and may not reflect actual financial data."
         }
-
-    def _format_currency(self, amount: float) -> str:
-
-        if amount >= 1_000_000_000:
-            return f"${amount / 1_000_000_000:.2f} billion"
-        elif amount >= 1_000_000:
-            return f"${amount / 1_000_000:.2f} million"
-        elif amount >= 1_000:
-            return f"${amount / 1_000:.2f} thousand"
-        else:
-            return f"${amount:.2f}"
