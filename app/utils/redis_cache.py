@@ -1,8 +1,16 @@
 from typing import Any, Optional, Dict, List
 import json
+from datetime import datetime, date
 from upstash_redis import Redis
 from app.core.config import settings
 from pydantic import BaseModel
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 class RedisClient:
@@ -13,7 +21,6 @@ class RedisClient:
         )
 
     async def get(self, key: str) -> Optional[Any]:
-        """Get value from Redis, unserializing JSON if possible."""
         value = self.redis.get(key)
         if value is None:
             return None
@@ -25,16 +32,14 @@ class RedisClient:
 
     async def set(self, key: str, value: Any, expire: Optional[int] = None) -> None:
         """Set value in Redis with optional expiration, serializing to JSON if needed."""
-        # Handle Pydantic models
         if isinstance(value, BaseModel):
-            # Convert Pydantic model to dict
             if hasattr(value, "model_dump"):
-                value = value.model_dump()  # Pydantic v2
+                value = value.model_dump()
             else:
-                value = value.dict()  # Pydantic v1
+                value = value.dict()
         
         if isinstance(value, (dict, list)):
-            value = json.dumps(value)
+            value = json.dumps(value, cls=DateTimeEncoder)
 
         if expire:
             self.redis.setex(key, expire, value)

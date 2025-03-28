@@ -97,7 +97,10 @@ iwork-backend/
 ├── alembic/                # Database migrations
 ├── app/
 │   ├── api/                # API endpoints
-│   ├── core/               # Core functionality
+│   ├── core/               # Core functional│   │   ├── config.py       # Application configuration
+│   │   ├── dependencies.py # FastAPI dependencies
+│   │   └── security.py     # Authentication & security
+ity
 │   │   ├── config.py       # Application configuration
 │   │   ├── dependencies.py # FastAPI dependencies
 │   │   └── security.py     # Authentication & security

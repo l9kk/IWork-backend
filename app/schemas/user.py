@@ -57,8 +57,9 @@ class UserResponse(UserInDBBase):
     full_name: str
     is_currently_employed: bool = False
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
     @validator('full_name', pre=True, always=True)
     def set_full_name(cls, v, values):
