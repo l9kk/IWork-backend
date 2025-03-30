@@ -83,11 +83,11 @@ async def get_company_salaries(
         skip: int = 0,
         limit: int = 50
 ):
-
+    
     cache_key = f"company_salaries:{company_id}:{hash((job_title, experience_level, employment_type, skip, limit))}"
     cached_result = await redis.get(cache_key)
     if cached_result:
-        return cached_result
+        return [SalaryResponse(**item) for item in cached_result]
     
     company = crud.company.get(db, id=company_id)
     if not company:
@@ -111,17 +111,17 @@ async def get_company_salaries(
             job_title=salary.job_title,
             salary_amount=salary.salary_amount,
             currency=salary.currency,
-            experience_level=salary.experience_level,
-            employment_type=salary.employment_type,
+            experience_level=ExperienceLevel(salary.experience_level.lower()),
+            employment_type=EmploymentType(salary.employment_type.lower().replace("_", "-")),
             location=salary.location,
             created_at=salary.created_at
         )
         for salary in salaries
     ]
 
+    dict_result = [item.model_dump() for item in result]
     # Cache for 1 hour
-    await redis.set(cache_key, result, expire=3600)
-
+    await redis.set(cache_key, dict_result, expire=3600)
     return result
 
 
@@ -137,15 +137,15 @@ async def get_salary_statistics(
     cache_key = f"salary:statistics:{job_title}:{experience_level}:{location}"
     cached_result = await redis.get(cache_key)
     if cached_result:
-        return cached_result
-
+        return [SalaryStatistics(**item) for item in cached_result]
+        
     statistics = crud.salary.get_salary_statistics(
         db,
         job_title=job_title,
         experience_level=experience_level,
         location=location
     )
-
+    
     result = [
         SalaryStatistics(
             job_title=stat["job_title"],
@@ -157,10 +157,10 @@ async def get_salary_statistics(
         )
         for stat in statistics
     ]
-
+    
+    dict_result = [item.model_dump() for item in result]
     # Cache for 3 hours
-    await redis.set(cache_key, result, expire=10800)
-
+    await redis.set(cache_key, dict_result, expire=10800)
     return result
 
 
@@ -183,9 +183,9 @@ async def get_salary_breakdown(
     - By location
     - By industry
     """
-
+    
     cache_key = f"salary:breakdown:{job_title}:{company_id}:{industry}:{location}:{currency}"
-
+    
     # Try to get from cache
     cached_result = await redis.get(cache_key)
     if cached_result:
@@ -194,10 +194,10 @@ async def get_salary_breakdown(
     result = SalaryAnalyticsService.get_detailed_salary_breakdown(
         db, job_title, company_id, industry, location, currency
     )
-
+    
     # Cache for 1 hour
     await redis.set(cache_key, result, expire=3600)
-
+    
     return result
 
 
@@ -215,12 +215,12 @@ async def get_salary_comparison(
 ):
     """
     Get comparative salary analysis:
-    - Company vs. industry average
+    - Company vs. industry averages
     - Location vs. national average
     """
-
+    
     cache_key = f"salary:compare:{job_title}:{company_id}:{location}:{experience_level}:{employment_type}:{currency}"
-
+    
     # Try to get from cache
     cached_result = await redis.get(cache_key)
     if cached_result:
@@ -229,10 +229,10 @@ async def get_salary_comparison(
     result = SalaryAnalyticsService.get_comparative_analysis(
         db, job_title, company_id, location, experience_level, employment_type, currency
     )
-
+    
     # Cache for 1 hour
     await redis.set(cache_key, result, expire=3600)
-
+    
     return result
 
 
@@ -265,19 +265,20 @@ async def advanced_salary_search(
         f"{','.join([type.value for type in employment_types or []])}:"
         f"{min_salary}:{max_salary}:{currency}:{sort_by}:{skip}:{limit}"
     )
-
+    
     # Try to get from cache
     cached_result = await redis.get(cache_key)
     if cached_result:
         return cached_result
 
     salary_query = db.query(Salary)
-
+    
     if query:
         salary_query = salary_query.filter(Salary.job_title.ilike(f"%{query}%"))
 
     if job_titles and len(job_titles) > 0:
         job_title_filters = []
+
         for title in job_titles:
             job_title_filters.append(Salary.job_title.ilike(f"%{title}%"))
         salary_query = salary_query.filter(or_(*job_title_filters))
@@ -288,48 +289,53 @@ async def advanced_salary_search(
     if industries and len(industries) > 0:
         salary_query = salary_query.join(Company, Salary.company_id == Company.id)
         industry_filters = []
+
         for industry in industries:
             industry_filters.append(Company.industry.ilike(f"%{industry}%"))
+
         salary_query = salary_query.filter(or_(*industry_filters))
 
     if locations and len(locations) > 0:
         location_filters = []
+
         for location in locations:
             location_filters.append(Salary.location.ilike(f"%{location}%"))
+
         salary_query = salary_query.filter(or_(*location_filters))
 
     if experience_levels and len(experience_levels) > 0:
         salary_query = salary_query.filter(Salary.experience_level.in_(experience_levels))
-
+    
     if employment_types and len(employment_types) > 0:
         salary_query = salary_query.filter(Salary.employment_type.in_(employment_types))
-
+    
     if min_salary is not None:
         salary_query = salary_query.filter(Salary.salary_amount >= min_salary)
-
+    
     if max_salary is not None:
         salary_query = salary_query.filter(Salary.salary_amount <= max_salary)
-
+    
     salary_query = salary_query.filter(Salary.currency == currency)
-
+    
     total_count = salary_query.count()
-
+    
     if sort_by == "salary_high_to_low":
         salary_query = salary_query.order_by(Salary.salary_amount.desc())
     elif sort_by == "salary_low_to_high":
         salary_query = salary_query.order_by(Salary.salary_amount.asc())
-    else:  # Default to recency
+    else:
         salary_query = salary_query.order_by(Salary.created_at.desc())
-
+    
     salary_query = salary_query.offset(skip).limit(limit)
-
+    
     salaries = salary_query.all()
-
+    
     results = []
+    
     for salary in salaries:
         company = crud.company.get(db, id=salary.company_id)
         company_name = company.name if company else "Unknown Company"
-
+        
         results.append({
             "id": salary.id,
             "company_id": salary.company_id,
@@ -342,7 +348,7 @@ async def advanced_salary_search(
             "location": salary.location,
             "created_at": salary.created_at.isoformat()
         })
-
+    
     response = {
         "results": results,
         "total": total_count,
@@ -356,16 +362,16 @@ async def advanced_salary_search(
             "employment_types": [type.value for type in employment_types] if employment_types else None,
             "min_salary": min_salary,
             "max_salary": max_salary,
-            "currency": currency
+            "currency": currency,
         },
         "sort_by": sort_by,
         "skip": skip,
         "limit": limit
     }
-
+    
     # Cache for 15 minutes
     await redis.set(cache_key, response, expire=900)
-
+    
     return response
 
 
@@ -378,16 +384,16 @@ async def get_my_salaries(
         limit: int = 50
 ):
     total_count = db.query(Salary).filter(Salary.user_id == current_user.id).count()
-
+    
     salaries = crud.salary.get_user_salaries(
         db, user_id=current_user.id, skip=skip, limit=limit
     )
-
+    
     result = []
     for salary in salaries:
         company = crud.company.get(db, id=salary.company_id)
         company_name = company.name if company else "Unknown Company"
-
+        
         result.append(SalaryResponse(
             id=salary.id,
             company_id=salary.company_id,
@@ -395,8 +401,8 @@ async def get_my_salaries(
             job_title=salary.job_title,
             salary_amount=salary.salary_amount,
             currency=salary.currency,
-            experience_level=salary.experience_level,
-            employment_type=salary.employment_type,
+            experience_level=ExperienceLevel(salary.experience_level.lower()),
+            employment_type=EmploymentType(salary.employment_type.lower().replace("_", "-")),
             location=salary.location,
             created_at=salary.created_at
         ))
@@ -419,16 +425,16 @@ async def update_salary(
     salary = crud.salary.get(db, id=salary_id)
     if not salary or salary.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Salary entry not found or not owned by user")
-
+    
     salary = crud.salary.update(db, db_obj=salary, obj_in=salary_in)
 
     # Invalidate caches
     await redis.delete_pattern(f"company:salaries:{salary.company_id}*")
     await redis.delete_pattern(f"salary:statistics:{salary.job_title}*")
-
+    
     company = crud.company.get(db, id=salary.company_id)
     company_name = company.name if company else "Unknown Company"
-
+    
     return SalaryResponse(
         id=salary.id,
         company_id=salary.company_id,
@@ -436,8 +442,8 @@ async def update_salary(
         job_title=salary.job_title,
         salary_amount=salary.salary_amount,
         currency=salary.currency,
-        experience_level=salary.experience_level,
-        employment_type=salary.employment_type,
+        experience_level=ExperienceLevel(salary.experience_level.lower()),
+        employment_type=EmploymentType(salary.employment_type.lower().replace("_", "-")),
         location=salary.location,
         created_at=salary.created_at
     )
