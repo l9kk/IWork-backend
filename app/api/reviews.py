@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
@@ -64,19 +64,20 @@ async def get_company_reviews(
         company_id: int,
         skip: int = 0,
         limit: int = 20,
-        include_files: bool = Query(False)
+        include_files: bool = Query(False),
+        status: Optional[ReviewStatus] = Query(ReviewStatus.VERIFIED)
 ):
     company = crud.company.get(db, id=company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
 
-    cache_key = f"company:reviews:{company_id}:{skip}:{limit}:{include_files}"
+    cache_key = f"company:reviews:{company_id}:{skip}:{limit}:{include_files}:{status}"
     cached_result = await redis.get(cache_key)
     if cached_result:
         return [ReviewResponse(**item) for item in cached_result]
 
     reviews = crud.review.get_company_reviews(
-        db, company_id=company_id, skip=skip, limit=limit
+        db, company_id=company_id, skip=skip, limit=limit, status=status
     )
 
     result = []

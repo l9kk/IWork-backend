@@ -19,7 +19,8 @@ class SearchService:
             min_rating: Optional[float] = None,
             max_rating: Optional[float] = None,
             skip: int = 0,
-            limit: int = 20
+            limit: int = 20,
+            status: ReviewStatus = ReviewStatus.VERIFIED
     ) -> Tuple[List[Review], int]:
         """
         Search reviews using full-text search
@@ -27,7 +28,7 @@ class SearchService:
         """
         tsquery = func.plainto_tsquery('english', query)
 
-        search_query = db.query(Review).filter(Review.status == ReviewStatus.VERIFIED)
+        search_query = db.query(Review).filter(Review.status == status)
 
         if query and query.strip():
             search_query = search_query.filter(Review.search_vector.op('@@')(tsquery))

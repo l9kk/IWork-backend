@@ -11,24 +11,29 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
     def create_with_owner(
             self, db: Session, *, obj_in: ReviewCreate, user_id: int
     ) -> Review:
+        
         obj_in_data = obj_in.dict()
         db_obj = Review(**obj_in_data, user_id=user_id)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
+        
         return db_obj
 
     def get_company_reviews(
-            self, db: Session, *, company_id: int, skip: int = 0, limit: int = 100
+            self, db: Session, *, company_id: int, skip: int = 0, limit: int = 100,
+            status: ReviewStatus = ReviewStatus.VERIFIED
     ) -> list[Type[Review]]:
+        
         return db.query(Review).filter(
             Review.company_id == company_id,
-            Review.status == ReviewStatus.VERIFIED
+            Review.status == status
         ).order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
 
     def get_user_reviews(
             self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100
     ) -> list[Type[Review]]:
+        
         return db.query(Review).filter(
             Review.user_id == user_id
         ).order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
@@ -36,6 +41,7 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
     def get_pending_reviews(
             self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> list[Type[Review]]:
+        
         return db.query(Review).filter(
             Review.status == ReviewStatus.PENDING
         ).order_by(Review.created_at).offset(skip).limit(limit).all()
