@@ -11,6 +11,7 @@ from app.core.dependencies import get_current_admin_user
 from app.db.base import get_db
 from app.models.review import ReviewStatus, Review
 from app.models.user import User
+from app.models.company import Company
 from app.schemas.review import AdminReviewResponse
 from app.services.email import send_review_approved_email, send_review_rejected_email, get_email_db_session
 from app.utils.redis_cache import RedisClient, get_redis
@@ -60,7 +61,7 @@ async def admin_dashboard(
     ).scalar()
 
     total_reviews = db.query(func.count(Review.id)).scalar()
-    total_companies = db.query(func.count()).scalar()
+    total_companies = db.query(func.count(Company.id)).scalar()
     total_users = db.query(func.count(User.id)).scalar()
     active_users = db.query(func.count(User.id)).filter(
         User.is_active == True

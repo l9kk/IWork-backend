@@ -164,43 +164,6 @@ async def get_salary_statistics(
     return result
 
 
-@router.get("/analytics/breakdown", response_model=Dict[str, Any])
-async def get_salary_breakdown(
-        *,
-        db: Session = Depends(get_db),
-        redis: RedisClient = Depends(get_redis),
-        job_title: Optional[str] = None,
-        company_id: Optional[int] = None,
-        industry: Optional[str] = None,
-        location: Optional[str] = None,
-        currency: str = "USD"
-):
-    """
-    Get detailed salary breakdown by various dimensions:
-    - Overall statistics
-    - By experience level
-    - By employment type
-    - By location
-    - By industry
-    """
-    
-    cache_key = f"salary:breakdown:{job_title}:{company_id}:{industry}:{location}:{currency}"
-    
-    # Try to get from cache
-    cached_result = await redis.get(cache_key)
-    if cached_result:
-        return cached_result
-
-    result = SalaryAnalyticsService.get_detailed_salary_breakdown(
-        db, job_title, company_id, industry, location, currency
-    )
-    
-    # Cache for 1 hour
-    await redis.set(cache_key, result, expire=3600)
-    
-    return result
-
-
 @router.get("/analytics/compare", response_model=Dict[str, Any])
 async def get_salary_comparison(
         *,
@@ -241,15 +204,12 @@ async def advanced_salary_search(
         *,
         db: Session = Depends(get_db),
         redis: RedisClient = Depends(get_redis),
-        query: Optional[str] = None,
-        job_titles: Optional[List[str]] = Query(None),
+        job_titles: List[str] = Query(..., description="Job titles to search for"),
         company_ids: Optional[List[int]] = Query(None),
         industries: Optional[List[str]] = Query(None),
         locations: Optional[List[str]] = Query(None),
         experience_levels: Optional[List[ExperienceLevel]] = Query(None),
         employment_types: Optional[List[EmploymentType]] = Query(None),
-        min_salary: Optional[float] = None,
-        max_salary: Optional[float] = None,
         currency: str = "USD",
         sort_by: str = "recency",
         skip: int = 0,
@@ -259,11 +219,11 @@ async def advanced_salary_search(
     Advanced salary search with multiple selection filters and sorting options.
     """
     cache_key = (
-        f"salary:search:{query}:{','.join(job_titles or [])}:{','.join([str(id) for id in company_ids or []])}:"
+        f"salary:search:{','.join(job_titles)}:{','.join([str(id) for id in company_ids or []])}:"
         f"{','.join(industries or [])}:{','.join(locations or [])}:"
         f"{','.join([level.value for level in experience_levels or []])}:"
         f"{','.join([type.value for type in employment_types or []])}:"
-        f"{min_salary}:{max_salary}:{currency}:{sort_by}:{skip}:{limit}"
+        f"{currency}:{sort_by}:{skip}:{limit}"
     )
     
     # Try to get from cache
@@ -273,15 +233,14 @@ async def advanced_salary_search(
 
     salary_query = db.query(Salary)
     
-    if query:
-        salary_query = salary_query.filter(Salary.job_title.ilike(f"%{query}%"))
-
-    if job_titles and len(job_titles) > 0:
+    if job_titles:
         job_title_filters = []
-
+        
         for title in job_titles:
             job_title_filters.append(Salary.job_title.ilike(f"%{title}%"))
-        salary_query = salary_query.filter(or_(*job_title_filters))
+        
+        if job_title_filters:
+            salary_query = salary_query.filter(or_(*job_title_filters))
 
     if company_ids and len(company_ids) > 0:
         salary_query = salary_query.filter(Salary.company_id.in_(company_ids))
@@ -289,18 +248,18 @@ async def advanced_salary_search(
     if industries and len(industries) > 0:
         salary_query = salary_query.join(Company, Salary.company_id == Company.id)
         industry_filters = []
-
+        
         for industry in industries:
             industry_filters.append(Company.industry.ilike(f"%{industry}%"))
-
+        
         salary_query = salary_query.filter(or_(*industry_filters))
 
     if locations and len(locations) > 0:
         location_filters = []
-
+        
         for location in locations:
             location_filters.append(Salary.location.ilike(f"%{location}%"))
-
+        
         salary_query = salary_query.filter(or_(*location_filters))
 
     if experience_levels and len(experience_levels) > 0:
@@ -308,12 +267,6 @@ async def advanced_salary_search(
     
     if employment_types and len(employment_types) > 0:
         salary_query = salary_query.filter(Salary.employment_type.in_(employment_types))
-    
-    if min_salary is not None:
-        salary_query = salary_query.filter(Salary.salary_amount >= min_salary)
-    
-    if max_salary is not None:
-        salary_query = salary_query.filter(Salary.salary_amount <= max_salary)
     
     salary_query = salary_query.filter(Salary.currency == currency)
     
@@ -331,7 +284,7 @@ async def advanced_salary_search(
     salaries = salary_query.all()
     
     results = []
-    
+
     for salary in salaries:
         company = crud.company.get(db, id=salary.company_id)
         company_name = company.name if company else "Unknown Company"
@@ -353,15 +306,12 @@ async def advanced_salary_search(
         "results": results,
         "total": total_count,
         "filters_applied": {
-            "query": query,
             "job_titles": job_titles,
             "company_ids": company_ids,
             "industries": industries,
             "locations": locations,
             "experience_levels": [level.value for level in experience_levels] if experience_levels else None,
             "employment_types": [type.value for type in employment_types] if employment_types else None,
-            "min_salary": min_salary,
-            "max_salary": max_salary,
             "currency": currency,
         },
         "sort_by": sort_by,
