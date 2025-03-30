@@ -29,21 +29,6 @@ async def create_review(
 
     review = crud.review.create_with_owner(db, obj_in=review_in, user_id=current_user.id)
 
-    # Run AI scanner on the review content
-    if settings.AI_SCANNER_ENABLED:
-        content_to_scan = f"{review.pros or ''} {review.cons or ''} {review.recommendations or ''}"
-        scan_results = await scan_review_content(content_to_scan)
-
-        for flag_type, flagged_items in scan_results.items():
-            for item in flagged_items:
-                crud.review.add_ai_flag(
-                    db,
-                    review_id=review.id,
-                    flag_type=flag_type,
-                    flag_description=f"Potentially {flag_type} content detected",
-                    flagged_text=item
-                )
-
     # Invalidate cache
     await redis.delete(f"company:detail:{review.company_id}")
     await redis.delete_pattern(f"company:reviews:{review.company_id}*")
@@ -71,7 +56,6 @@ async def create_review(
     )
 
 
-# Update the get_company_reviews function to include file attachments
 @router.get("/company/{company_id}", response_model=List[ReviewResponse])
 async def get_company_reviews(
         *,
@@ -126,7 +110,6 @@ async def get_company_reviews(
             file_attachments=file_attachments
         ))
 
-    # Convert Pydantic models to dictionaries before caching
     serializable_result = [item.model_dump() for item in result]
     await redis.set(cache_key, serializable_result, expire=3600)
 
@@ -202,24 +185,6 @@ async def update_review(
         updated_review = crud.review.update_status(
             db, review_id=review_id, status=ReviewStatus.PENDING
         )
-
-        if settings.AI_SCANNER_ENABLED:
-            # First delete old flags
-            crud.review.clear_ai_flags(db, review_id=review_id)
-
-            # Run new scan
-            content_to_scan = f"{review.pros or ''} {review.cons or ''} {review.recommendations or ''}"
-            scan_results = await scan_review_content(content_to_scan)
-
-            for flag_type, flagged_items in scan_results.items():
-                for item in flagged_items:
-                    crud.review.add_ai_flag(
-                        db,
-                        review_id=review.id,
-                        flag_type=flag_type,
-                        flag_description=f"Potentially {flag_type} content detected",
-                        flagged_text=item
-                    )
 
     # Invalidate cache
     await redis.delete(f"company:detail:{review.company_id}")

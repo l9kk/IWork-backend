@@ -24,6 +24,7 @@ class Settings(BaseModel):
 
     # AI Scanner settings
     AI_SCANNER_ENABLED: bool = os.getenv("AI_SCANNER_ENABLED").lower() == "true"
+    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
 
     # Email settings
     EMAILS_ENABLED: bool = os.getenv("EMAILS_ENABLED")

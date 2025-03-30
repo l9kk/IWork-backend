@@ -86,16 +86,9 @@ class ReviewResponse(BaseModel):
     }
 
 
-class AIScannerFlagResponse(BaseModel):
-    flag_type: str
-    flag_description: str
-    flagged_text: Optional[str] = None
-
-
 class AdminReviewResponse(ReviewResponse):
     user_id: int
     moderation_notes: Optional[str] = None
-    ai_scanner_flags: List[Dict[str, Any]] = []
 
 class UserReviewsResponse(BaseModel):
     total_count: int

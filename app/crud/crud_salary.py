@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
 
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
@@ -167,6 +168,41 @@ class CRUDSalary(CRUDBase[Salary, SalaryCreate, SalaryUpdate]):
             })
 
         return result
+
+    def find_potential_duplicates(
+            self, db: Session, *, time_window_days: int = 30
+    ) -> List[List[Salary]]:
+        cutoff_date = datetime.now() - timedelta(days=time_window_days)
+        
+        potential_duplicates_query = db.query(
+            Salary.user_id,
+            Salary.company_id,
+            Salary.job_title,
+            func.count(Salary.id).label("entry_count")
+        ).filter(
+            Salary.created_at >= cutoff_date
+        ).group_by(
+            Salary.user_id,
+            Salary.company_id,
+            Salary.job_title
+        ).having(
+            func.count(Salary.id) > 1
+        )
+        
+        duplicate_groups = []
+        
+        for row in potential_duplicates_query:
+            matching_salaries = db.query(Salary).filter(
+                Salary.user_id == row.user_id,
+                Salary.company_id == row.company_id,
+                Salary.job_title == row.job_title,
+                Salary.created_at >= cutoff_date
+            ).order_by(Salary.created_at.desc()).all()
+            
+            if len(matching_salaries) > 1:
+                duplicate_groups.append(matching_salaries)
+                
+        return duplicate_groups
 
 
 salary = CRUDSalary(Salary)
