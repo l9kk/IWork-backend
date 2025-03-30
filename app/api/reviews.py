@@ -89,7 +89,7 @@ async def get_company_reviews(
     cache_key = f"company:reviews:{company_id}:{skip}:{limit}:{include_files}"
     cached_result = await redis.get(cache_key)
     if cached_result:
-        return cached_result
+        return [ReviewResponse(**item) for item in cached_result]
 
     reviews = crud.review.get_company_reviews(
         db, company_id=company_id, skip=skip, limit=limit
@@ -126,8 +126,9 @@ async def get_company_reviews(
             file_attachments=file_attachments
         ))
 
-    # Cache reviews for 1 hour
-    await redis.set(cache_key, result, expire=3600)
+    # Convert Pydantic models to dictionaries before caching
+    serializable_result = [item.model_dump() for item in result]
+    await redis.set(cache_key, serializable_result, expire=3600)
 
     return result
 

@@ -47,7 +47,9 @@ class ReviewUpdate(BaseModel):
 
     @validator('rating')
     def rating_range(cls, v):
-        if v is not None and (v < 1 or v > 5):
+        if v is None:
+            return v
+        if v < 1 or v > 5:
             raise ValueError('Rating must be between 1 and 5')
         return v
 

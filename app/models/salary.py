@@ -7,8 +7,9 @@ from app.db.base import Base
 
 
 class ExperienceLevel(str, PyEnum):
-    ENTRY = "entry"
-    MID = "mid"
+    INTERN = "intern"
+    JUNIOR = "junior"
+    MIDDLE = "middle"
     SENIOR = "senior"
     EXECUTIVE = "executive"
 
