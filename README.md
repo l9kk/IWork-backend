@@ -1,6 +1,5 @@
 # IWork Backend
 
-
 A comprehensive backend for the IWork platform - connecting professionals with company insights through reviews and salary data.
 
 ## 📋 Overview
@@ -9,15 +8,18 @@ IWork is a platform that allows professionals to share and access company review
 
 ## ✨ Features
 
-- 🔐 Authentication and authorization with JWT tokens
+- 🔐 Authentication and authorization with JWT tokens and refresh token rotation
 - 👥 User management and profile settings
 - 🏢 Company information and statistics
 - ⭐ Review submission, moderation, and display
 - 💰 Salary data submission and analytics
-- 🔍 Advanced search capabilities
+- 🔍 Advanced search capabilities with filtering
 - 🤖 AI-powered content moderation
 - 📊 Admin dashboard with moderation tools
 - 🚀 High performance with serverless PostgreSQL and Redis
+- 📧 Email notifications for account verification and review status
+- 📄 File attachment support for reviews
+- 🔄 Scheduled tasks for database maintenance
 
 ## 🛠️ Tech Stack
 
@@ -29,6 +31,9 @@ IWork is a platform that allows professionals to share and access company review
 - **Authentication**: JWT with [python-jose](https://github.com/mpdavis/python-jose)
 - **Password Hashing**: [Passlib](https://passlib.readthedocs.io/) with Bcrypt
 - **Dependency Management**: [Poetry](https://python-poetry.org/)
+- **Email Templates**: Jinja2 templates
+- **File Storage**: AWS S3 with CloudFront CDN
+- **AI Services**: Google Gemini AI for content moderation
 
 ## 🔧 Installation and Setup
 
@@ -47,9 +52,7 @@ IWork is a platform that allows professionals to share and access company review
 
 2. Install dependencies:
    ```bash
-   # Using Poetry (recommended)
    poetry install
-
    ```
 
 3. Create a `.env` file in the root directory (see [Configuration](#%EF%B8%8F-configuration) section)
@@ -88,6 +91,18 @@ DATABASE_URL=postgresql://neondb_owner:your-password@your-instance-id.eu-central
 REDIS_URL=https://your-instance.upstash.io
 REDIS_TOKEN=your-token
 
+# AWS S3 settings
+AWS_ACCESS_KEY_ID=your-access-key-id
+AWS_SECRET_ACCESS_KEY=your-secret-access-key
+AWS_S3_BUCKET_NAME=your-bucket-name
+AWS_CLOUDFRONT_URL=https://your-cloudfront-url
+
+# Email settings
+EMAIL_HOST=smtp.your-email-provider.com
+EMAIL_PORT=587
+EMAIL_USERNAME=your-email-username
+EMAIL_PASSWORD=your-email-password
+EMAIL_FROM=your-email@example.com
 ```
 
 ## 📂 Project Structure
@@ -97,10 +112,7 @@ iwork-backend/
 ├── alembic/                # Database migrations
 ├── app/
 │   ├── api/                # API endpoints
-│   ├── core/               # Core functional│   │   ├── config.py       # Application configuration
-│   │   ├── dependencies.py # FastAPI dependencies
-│   │   └── security.py     # Authentication & security
-ity
+│   ├── core/               # Core functionality
 │   │   ├── config.py       # Application configuration
 │   │   ├── dependencies.py # FastAPI dependencies
 │   │   └── security.py     # Authentication & security
@@ -109,6 +121,10 @@ ity
 │   ├── models/             # SQLAlchemy models
 │   ├── schemas/            # Pydantic schemas
 │   ├── services/           # Business logic services
+│   │   ├── email.py        # Email service implementation
+│   │   ├── file_storage.py # File storage service
+│   │   └── token_cleanup.py # Scheduled tasks for token cleanup
+│   ├── templates/          # Jinja2 email templates
 │   ├── utils/              # Utility functions
 │   │   └── redis_cache.py  # Redis client implementation
 │   └── main.py             # FastAPI application
@@ -133,7 +149,6 @@ alembic upgrade head
 # Rollback migrations
 alembic downgrade -1
 ```
-
 
 ## 📱 API Documentation
 
@@ -160,6 +175,7 @@ Once the application is running, you can explore the API documentation:
 - **Review**: Company reviews with moderation
 - **Salary**: Anonymized salary data
 - **AccountSettings**: User preferences and settings
+- **Token**: Refresh token management
 
 ## 🔍 Cache Strategy
 
