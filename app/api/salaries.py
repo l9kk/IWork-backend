@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
@@ -27,24 +27,47 @@ async def create_salary(
     company = crud.company.get(db, id=salary_in.company_id)
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
-
-    salary = crud.salary.create_with_owner(db, obj_in=salary_in, user_id=current_user.id)
-
-    # Invalidate cache
-    await redis.delete_pattern(f"company:salaries:{salary.company_id}*")
-    await redis.delete_pattern(f"salary:statistics:{salary.job_title}*")
+    
+    experience_level = getattr(salary_in.experience_level, 'value', 'intern').lower()
+    employment_type = getattr(salary_in.employment_type, 'value', 'full-time').lower()
+    
+    result = db.execute(
+        text("""
+        INSERT INTO salaries 
+        (user_id, company_id, job_title, salary_amount, currency, experience_level, employment_type, location, is_anonymous, created_at) 
+        VALUES (:user_id, :company_id, :job_title, :salary_amount, :currency, :experience_level, :employment_type, :location, :is_anonymous, NOW())
+        RETURNING id, created_at
+        """),
+        {
+            "user_id": current_user.id,
+            "company_id": salary_in.company_id,
+            "job_title": salary_in.job_title,
+            "salary_amount": salary_in.salary_amount,
+            "currency": salary_in.currency,
+            "experience_level": experience_level,
+            "employment_type": employment_type,
+            "location": salary_in.location or "",
+            "is_anonymous": salary_in.is_anonymous
+        }
+    )
+    
+    row = result.fetchone()
+    db.commit()
+    
+    await redis.delete_pattern(f"company:salaries:{salary_in.company_id}*")
+    await redis.delete_pattern(f"salary:statistics:{salary_in.job_title}*")
 
     return SalaryResponse(
-        id=salary.id,
-        company_id=salary.company_id,
+        id=row[0],
+        company_id=salary_in.company_id,
         company_name=company.name,
-        job_title=salary.job_title,
-        salary_amount=salary.salary_amount,
-        currency=salary.currency,
-        experience_level=salary.experience_level,
-        employment_type=salary.employment_type,
-        location=salary.location,
-        created_at=salary.created_at
+        job_title=salary_in.job_title,
+        salary_amount=salary_in.salary_amount,
+        currency=salary_in.currency,
+        experience_level=experience_level,
+        employment_type=employment_type,
+        location=salary_in.location,
+        created_at=row[1]
     )
 
 
@@ -60,14 +83,15 @@ async def get_company_salaries(
         skip: int = 0,
         limit: int = 50
 ):
-    company = crud.company.get(db, id=company_id)
-    if not company:
-        raise HTTPException(status_code=404, detail="Company not found")
 
-    cache_key = f"company:salaries:{company_id}:{job_title}:{experience_level}:{employment_type}:{skip}:{limit}"
+    cache_key = f"company_salaries:{company_id}:{hash((job_title, experience_level, employment_type, skip, limit))}"
     cached_result = await redis.get(cache_key)
     if cached_result:
         return cached_result
+    
+    company = crud.company.get(db, id=company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
 
     salaries = crud.salary.get_company_salaries(
         db,

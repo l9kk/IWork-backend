@@ -1,5 +1,5 @@
 from enum import Enum as PyEnum
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -31,8 +31,17 @@ class Salary(Base):
     job_title = Column(String, index=True, nullable=False)
     salary_amount = Column(Float, nullable=False)
     currency = Column(String, nullable=False, default="USD")
-    experience_level = Column(Enum(ExperienceLevel), nullable=False)
-    employment_type = Column(Enum(EmploymentType), nullable=False, default=EmploymentType.FULL_TIME)
+    experience_level = Column(
+        String, 
+        nullable=False,
+        info={'enum_values': [level.value for level in ExperienceLevel]}
+    )
+    employment_type = Column(
+        String, 
+        nullable=False, 
+        default=EmploymentType.FULL_TIME.value,
+        info={'enum_values': [type.value for type in EmploymentType]}
+    )
     location = Column(String, nullable=True)
     is_anonymous = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

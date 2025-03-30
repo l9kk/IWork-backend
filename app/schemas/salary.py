@@ -21,6 +21,38 @@ class SalaryBase(BaseModel):
             raise ValueError('Salary amount must be positive')
         return v
 
+    @classmethod
+    def _validate_enum(cls, v, enum_class, default_value=None):
+        if isinstance(v, enum_class):
+            return v
+        if isinstance(v, str):
+            try:
+                return enum_class(v)
+            except ValueError:
+                try:
+                    return getattr(enum_class, v)
+                except (AttributeError, TypeError):
+                    if default_value:
+                        return default_value
+                    raise ValueError(f"Invalid {enum_class.__name__} value: {v}")
+        raise ValueError(f"Invalid {enum_class.__name__} type: {type(v)}")
+
+    @validator('experience_level')
+    def validate_experience_level(cls, v):
+        return cls._validate_enum(v, ExperienceLevel, ExperienceLevel.INTERN)
+
+    @validator('employment_type')
+    def validate_employment_type(cls, v):
+        return cls._validate_enum(v, EmploymentType, EmploymentType.FULL_TIME)
+    
+    @property
+    def experience_level_value(self) -> str:
+        return getattr(self.experience_level, 'value', 'intern')
+
+    @property
+    def employment_type_value(self) -> str:
+        return getattr(self.employment_type, 'value', 'full-time')
+
 
 class SalaryCreate(SalaryBase):
     pass

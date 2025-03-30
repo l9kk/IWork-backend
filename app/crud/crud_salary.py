@@ -9,15 +9,56 @@ from app.schemas.salary import SalaryCreate, SalaryUpdate
 
 
 class CRUDSalary(CRUDBase[Salary, SalaryCreate, SalaryUpdate]):
+    def _normalize_enum_value(self, value, enum_class):
+        if hasattr(value, 'value'):
+            return value.value
+        elif isinstance(value, str):
+            try:
+                return enum_class(value).value
+            except ValueError:
+                try:
+                    return getattr(enum_class, value).value
+                except (AttributeError, TypeError):
+                    return None
+        return None
+        
     def create_with_owner(
             self, db: Session, *, obj_in: SalaryCreate, user_id: int
     ) -> Salary:
         obj_in_data = obj_in.dict()
+        
+        if 'experience_level' in obj_in_data:
+            normalized = self._normalize_enum_value(obj_in_data['experience_level'], ExperienceLevel)
+            if normalized:
+                obj_in_data['experience_level'] = normalized
+        
+        if 'employment_type' in obj_in_data:
+            normalized = self._normalize_enum_value(obj_in_data['employment_type'], EmploymentType)
+            if normalized:
+                obj_in_data['employment_type'] = normalized
+        
         db_obj = Salary(**obj_in_data, user_id=user_id)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def update(
+        self, db: Session, *, db_obj: Salary, obj_in: SalaryUpdate
+    ) -> Salary:
+        obj_data = obj_in.dict(exclude_unset=True)
+        
+        if 'experience_level' in obj_data:
+            normalized = self._normalize_enum_value(obj_data['experience_level'], ExperienceLevel)
+            if normalized:
+                obj_data['experience_level'] = normalized
+                        
+        if 'employment_type' in obj_data:
+            normalized = self._normalize_enum_value(obj_data['employment_type'], EmploymentType)
+            if normalized:
+                obj_data['employment_type'] = normalized
+        
+        return super().update(db, db_obj=db_obj, obj_in=obj_data)
 
     def get_company_salaries(
             self,
