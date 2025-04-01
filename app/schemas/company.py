@@ -2,7 +2,11 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
-from app.schemas.integrations import StockDataResponse, TaxDataResponse, HistoricalStockDataResponse
+from app.schemas.integrations import (
+    StockDataResponse,
+    TaxDataResponse,
+    HistoricalStockDataResponse,
+)
 from app.schemas.review import ReviewResponse
 
 
@@ -17,6 +21,7 @@ class CompanyBase(BaseModel):
     is_public: bool = False
     stock_symbol: Optional[str] = None
     sec_cik: Optional[str] = None
+
 
 class CompanyCreate(CompanyBase):
     pass
@@ -33,9 +38,7 @@ class CompanyResponse(BaseModel):
     location: Optional[str]
     logo_url: Optional[str]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class RecommendedCompanyResponse(BaseModel):
@@ -45,9 +48,7 @@ class RecommendedCompanyResponse(BaseModel):
     avg_rating: float
     review_count: int
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class CompanyDetail(CompanyResponse):
@@ -67,10 +68,8 @@ class CompanyDetail(CompanyResponse):
 
     model_config = {
         "from_attributes": True,
-        "json_encoders": {
-            datetime: lambda v: v.isoformat() if v else None
-        },
-        "arbitrary_types_allowed": True
+        "json_encoders": {datetime: lambda v: v.isoformat() if v else None},
+        "arbitrary_types_allowed": True,
     }
 
 
@@ -92,8 +91,6 @@ class CompanyFinancials(BaseModel):
 
     model_config = {
         "from_attributes": True,
-        "json_encoders": {
-            datetime: lambda v: v.isoformat() if v else None
-        },
-        "arbitrary_types_allowed": True
+        "json_encoders": {datetime: lambda v: v.isoformat() if v else None},
+        "arbitrary_types_allowed": True,
     }

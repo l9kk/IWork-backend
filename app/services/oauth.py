@@ -14,10 +14,12 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-config = Config(environ={
-    "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID,
-    "GOOGLE_CLIENT_SECRET": settings.GOOGLE_CLIENT_SECRET
-})
+config = Config(
+    environ={
+        "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID,
+        "GOOGLE_CLIENT_SECRET": settings.GOOGLE_CLIENT_SECRET,
+    }
+)
 
 oauth = OAuth(config)
 oauth.register(
@@ -48,22 +50,26 @@ async def exchange_google_code(code: str) -> Dict[str, Any]:
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
             "redirect_uri": settings.OAUTH_REDIRECT_URL,
-            "grant_type": "authorization_code"
+            "grant_type": "authorization_code",
         }
 
         async with httpx.AsyncClient() as client:
-            token_response = await client.post(settings.GOOGLE_TOKEN_URL, data=token_params)
+            token_response = await client.post(
+                settings.GOOGLE_TOKEN_URL, data=token_params
+            )
             token_data = token_response.json()
 
             if "error" in token_data:
                 logger.error(f"Error exchanging code: {token_data}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Failed to exchange code: {token_data.get('error_description', token_data.get('error'))}"
+                    detail=f"Failed to exchange code: {token_data.get('error_description', token_data.get('error'))}",
                 )
 
             headers = {"Authorization": f"Bearer {token_data['access_token']}"}
-            user_response = await client.get(settings.GOOGLE_USERINFO_URL, headers=headers)
+            user_response = await client.get(
+                settings.GOOGLE_USERINFO_URL, headers=headers
+            )
             user_info = user_response.json()
 
             return user_info
@@ -72,12 +78,12 @@ async def exchange_google_code(code: str) -> Dict[str, Any]:
         logger.error(f"Error in Google OAuth exchange: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error communicating with Google OAuth service"
+            detail="Error communicating with Google OAuth service",
         )
 
 
 async def process_google_user(
-        db: Session, user_info: Dict[str, Any]
+    db: Session, user_info: Dict[str, Any]
 ) -> Tuple[User, bool]:
     oauth_id = user_info.get("sub")
     email = user_info.get("email")
@@ -85,7 +91,7 @@ async def process_google_user(
     if not oauth_id or not email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incomplete user information from Google"
+            detail="Incomplete user information from Google",
         )
 
     user = crud.user.get_by_oauth_id(db, provider="google", oauth_id=oauth_id)
@@ -99,7 +105,7 @@ async def process_google_user(
             user_id=user.id,
             provider="google",
             oauth_id=oauth_id,
-            oauth_data=json.dumps(user_info)
+            oauth_data=json.dumps(user_info),
         )
         return user, False
 
@@ -116,14 +122,13 @@ async def process_google_user(
         provider="google",
         oauth_id=oauth_id,
         oauth_data=json.dumps(user_info),
-        is_verified=user_info.get("email_verified", False)
+        is_verified=user_info.get("email_verified", False),
     )
 
     from app.schemas.settings import AccountSettingsUpdate
+
     crud.account_settings.create_or_update(
-        db,
-        user_id=user.id,
-        obj_in=AccountSettingsUpdate()
+        db, user_id=user.id, obj_in=AccountSettingsUpdate()
     )
 
     return user, True

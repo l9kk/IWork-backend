@@ -11,10 +11,14 @@ from app.schemas.token import RefreshTokenCreate
 
 class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCreate]):
     def create_refresh_token(
-            self, db: Session, *, user_id: int, expires_delta: timedelta,
-            device_name: Optional[str] = None,
-            device_ip: Optional[str] = None,
-            user_agent: Optional[str] = None
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        expires_delta: timedelta,
+        device_name: Optional[str] = None,
+        device_ip: Optional[str] = None,
+        user_agent: Optional[str] = None,
     ) -> RefreshToken:
         token_value = str(uuid.uuid4())
         expires_at = datetime.now(timezone.utc) + expires_delta
@@ -25,7 +29,7 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
             expires_at=expires_at,
             device_name=device_name,
             device_ip=device_ip,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
 
         db.add(refresh_token)
@@ -38,7 +42,7 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
 
     def is_valid(self, refresh_token: RefreshToken) -> bool:
         now = datetime.now(timezone.utc)
-        return (not refresh_token.revoked and refresh_token.expires_at > now)
+        return not refresh_token.revoked and refresh_token.expires_at > now
 
     def revoke_token(self, db: Session, *, token: str) -> None:
         refresh_token = self.get_by_token(db, token=token)
@@ -49,9 +53,7 @@ class CRUDRefreshToken(CRUDBase[RefreshToken, RefreshTokenCreate, RefreshTokenCr
 
     def clean_expired_tokens(self, db: Session) -> None:
         now = datetime.now(timezone.utc)
-        db.query(RefreshToken).filter(
-            RefreshToken.expires_at < now
-        ).delete()
+        db.query(RefreshToken).filter(RefreshToken.expires_at < now).delete()
         db.commit()
 
 

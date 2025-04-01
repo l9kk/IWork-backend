@@ -3,6 +3,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from datetime import date
 
+
 class SortOption(str, Enum):
     RECENCY = "recency"
     RELEVANCE = "relevance"
@@ -19,10 +20,18 @@ class DateRange(BaseModel):
 
 class AdvancedSearchParams(BaseModel):
     query: Optional[str] = None
-    industries: Optional[List[str]] = Field(default=None, description="List of industries to filter by")
-    locations: Optional[List[str]] = Field(default=None, description="List of locations to filter by")
-    experience_levels: Optional[List[str]] = Field(default=None, description="List of experience levels to filter by")
-    employment_types: Optional[List[str]] = Field(default=None, description="List of employment types to filter by")
+    industries: Optional[List[str]] = Field(
+        default=None, description="List of industries to filter by"
+    )
+    locations: Optional[List[str]] = Field(
+        default=None, description="List of locations to filter by"
+    )
+    experience_levels: Optional[List[str]] = Field(
+        default=None, description="List of experience levels to filter by"
+    )
+    employment_types: Optional[List[str]] = Field(
+        default=None, description="List of employment types to filter by"
+    )
     min_rating: Optional[float] = None
     max_rating: Optional[float] = None
     min_salary: Optional[float] = None

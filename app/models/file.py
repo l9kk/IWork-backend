@@ -24,8 +24,12 @@ class FileAttachment(Base):
     s3_key = Column(String, nullable=False, unique=True)
     s3_bucket = Column(String, nullable=False)
     file_url = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    review_id = Column(Integer, ForeignKey("reviews.id", ondelete="CASCADE"), nullable=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    review_id = Column(
+        Integer, ForeignKey("reviews.id", ondelete="CASCADE"), nullable=True
+    )
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

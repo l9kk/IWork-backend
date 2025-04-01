@@ -19,10 +19,10 @@ def get_s3_client():
     Create and return an S3 client instance
     """
     return boto3.client(
-        's3',
+        "s3",
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_REGION
+        region_name=settings.AWS_REGION,
     )
 
 
@@ -30,12 +30,12 @@ def determine_file_type(content_type: str) -> FileType:
     """
     Determine the file type based on content type
     """
-    if content_type.startswith('image/'):
+    if content_type.startswith("image/"):
         return FileType.IMAGE
     elif content_type in [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ]:
         return FileType.DOCUMENT
     return FileType.OTHER
@@ -51,8 +51,7 @@ async def validate_file(file: UploadFile) -> Tuple[str, str, int]:
 
     if not contents:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Empty file"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file"
         )
 
     size = len(contents)
@@ -60,14 +59,14 @@ async def validate_file(file: UploadFile) -> Tuple[str, str, int]:
         max_size_mb = settings.MAX_UPLOAD_SIZE / (1024 * 1024)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum size allowed is {max_size_mb} MB"
+            detail=f"File too large. Maximum size allowed is {max_size_mb} MB",
         )
 
     extension = Path(file.filename).suffix.lower()
     if extension not in settings.ALLOWED_UPLOAD_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type not allowed. Allowed types: {', '.join(settings.ALLOWED_UPLOAD_EXTENSIONS)}"
+            detail=f"File type not allowed. Allowed types: {', '.join(settings.ALLOWED_UPLOAD_EXTENSIONS)}",
         )
 
     content_type = file.content_type
@@ -76,10 +75,10 @@ async def validate_file(file: UploadFile) -> Tuple[str, str, int]:
 
 
 async def upload_file_to_s3(
-        file: UploadFile,
-        user_id: int,
-        review_id: Optional[int] = None,
-        description: Optional[str] = None
+    file: UploadFile,
+    user_id: int,
+    review_id: Optional[int] = None,
+    description: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Upload a file to S3 and return metadata
@@ -104,9 +103,7 @@ async def upload_file_to_s3(
             file.file,
             settings.AWS_BUCKET_NAME,
             s3_key,
-            ExtraArgs={
-                "ContentType": content_type
-            }
+            ExtraArgs={"ContentType": content_type},
         )
 
         if settings.USE_CLOUDFRONT and settings.CLOUDFRONT_DOMAIN:
@@ -125,14 +122,14 @@ async def upload_file_to_s3(
             "file_url": file_url,
             "user_id": user_id,
             "review_id": review_id,
-            "description": description
+            "description": description,
         }
 
     except ClientError as e:
         logger.error(f"Error uploading file to S3: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload file to storage"
+            detail="Failed to upload file to storage",
         )
 
 
@@ -159,12 +156,9 @@ def generate_presigned_url(s3_key: str, expires_in: int = 3600) -> str | None:
     try:
         s3_client = get_s3_client()
         url = s3_client.generate_presigned_url(
-            'get_object',
-            Params={
-                'Bucket': settings.AWS_BUCKET_NAME,
-                'Key': s3_key
-            },
-            ExpiresIn=expires_in
+            "get_object",
+            Params={"Bucket": settings.AWS_BUCKET_NAME, "Key": s3_key},
+            ExpiresIn=expires_in,
         )
         return url
     except ClientError as e:

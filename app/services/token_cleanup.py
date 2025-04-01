@@ -6,6 +6,7 @@ from app import crud
 
 logger = logging.getLogger(__name__)
 
+
 async def cleanup_expired_tokens():
     """
     Scheduled task to clean up expired refresh tokens from the database
@@ -18,6 +19,7 @@ async def cleanup_expired_tokens():
         logger.error(f"Error cleaning up expired tokens: {e}")
     finally:
         db.close()
+
 
 async def start_token_cleanup_scheduler():
     while True:

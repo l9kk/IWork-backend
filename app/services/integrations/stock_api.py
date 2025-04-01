@@ -45,17 +45,25 @@ class StockAPIService:
                 "volume": info.get("volume", None),
                 "market_cap": info.get("marketCap", None),
                 "pe_ratio": info.get("trailingPE", None),
-                "dividend_yield": info.get("dividendYield", None) if info.get("dividendYield") else None,
+                "dividend_yield": (
+                    info.get("dividendYield", None)
+                    if info.get("dividendYield")
+                    else None
+                ),
                 "fifty_two_week_high": info.get("fiftyTwoWeekHigh", None),
                 "fifty_two_week_low": info.get("fiftyTwoWeekLow", None),
                 "timestamp": datetime.now().isoformat(),
-                "currency": info.get("currency", "USD")
+                "currency": info.get("currency", "USD"),
             }
 
             # Get recent price change data (1 day)
             if stock_data["current_price"] and stock_data["previous_close"]:
-                price_change = stock_data["current_price"] - stock_data["previous_close"]
-                price_change_percent = (price_change / stock_data["previous_close"]) * 100
+                price_change = (
+                    stock_data["current_price"] - stock_data["previous_close"]
+                )
+                price_change_percent = (
+                    price_change / stock_data["previous_close"]
+                ) * 100
                 stock_data["price_change"] = round(price_change, 2)
                 stock_data["price_change_percent"] = round(price_change_percent, 2)
             else:
@@ -64,13 +72,17 @@ class StockAPIService:
 
             # Format price with currency
             if stock_data["current_price"]:
-                stock_data["formatted_price"] = f"{stock_data['current_price']:.2f} {stock_data['currency']}"
+                stock_data["formatted_price"] = (
+                    f"{stock_data['current_price']:.2f} {stock_data['currency']}"
+                )
             else:
                 stock_data["formatted_price"] = "N/A"
 
             # Add formatted market cap
             if stock_data["market_cap"]:
-                stock_data["formatted_market_cap"] = format_large_number(stock_data["market_cap"])
+                stock_data["formatted_market_cap"] = format_large_number(
+                    stock_data["market_cap"]
+                )
             else:
                 stock_data["formatted_market_cap"] = "N/A"
 
@@ -83,11 +95,11 @@ class StockAPIService:
             logger.error(f"Error fetching stock data for {symbol}: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to fetch stock data: {str(e)}"
+                detail=f"Failed to fetch stock data: {str(e)}",
             )
 
     async def get_historical_stock_data(
-            self, symbol: str, period: str = "1y", interval: str = "1mo"
+        self, symbol: str, period: str = "1y", interval: str = "1mo"
     ) -> Dict[str, Any]:
         """
         Get historical stock data for charting.
@@ -109,21 +121,23 @@ class StockAPIService:
             # Convert to a list of data points for charting
             data_points = []
             for date, row in history.iterrows():
-                data_points.append({
-                    "date": date.strftime('%Y-%m-%d'),
-                    "open": round(row['Open'], 2),
-                    "high": round(row['High'], 2),
-                    "low": round(row['Low'], 2),
-                    "close": round(row['Close'], 2),
-                    "volume": row['Volume']
-                })
+                data_points.append(
+                    {
+                        "date": date.strftime("%Y-%m-%d"),
+                        "open": round(row["Open"], 2),
+                        "high": round(row["High"], 2),
+                        "low": round(row["Low"], 2),
+                        "close": round(row["Close"], 2),
+                        "volume": row["Volume"],
+                    }
+                )
 
             result = {
                 "symbol": symbol,
                 "period": period,
                 "interval": interval,
                 "data": data_points,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
             # Cache the results for 24 hours
@@ -135,5 +149,5 @@ class StockAPIService:
             logger.error(f"Error fetching historical stock data for {symbol}: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to fetch historical stock data: {str(e)}"
+                detail=f"Failed to fetch historical stock data: {str(e)}",
             )

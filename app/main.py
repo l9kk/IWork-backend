@@ -11,7 +11,18 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.services.token_cleanup import start_token_cleanup_scheduler
 
-from app.api import auth, users, companies, reviews, salaries, search, admin, files, oauth, integrations
+from app.api import (
+    auth,
+    users,
+    companies,
+    reviews,
+    salaries,
+    search,
+    admin,
+    files,
+    oauth,
+    integrations,
+)
 from app.core.config import settings
 from app.db.base import get_db
 from app.utils.redis_cache import get_redis, RedisClient
@@ -36,10 +47,7 @@ app.add_middleware(
 
 # Health check endpoint
 @app.get("/health", tags=["health"])
-async def health_check(
-        db=Depends(get_db),
-        redis: RedisClient = Depends(get_redis)
-):
+async def health_check(db=Depends(get_db), redis: RedisClient = Depends(get_redis)):
     """
     Health check endpoint to verify database and Redis connections
     """
@@ -69,12 +77,10 @@ async def health_check(
         content={
             "status": "healthy" if status_code == status.HTTP_200_OK else "unhealthy",
             "timestamp": time.time(),
-            "services": {
-                "database": db_status,
-                "redis": redis_status
-            }
-        }
+            "services": {"database": db_status, "redis": redis_status},
+        },
     )
+
 
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
@@ -84,21 +90,26 @@ async def add_request_id(request: Request, call_next):
     response.headers["X-Request-ID"] = request_id
     return response
 
+
 app.include_router(auth.router, tags=["auth"])
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
-app.include_router(users.router, prefix= "/users", tags=["users"])
+app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(companies.router, prefix="/companies", tags=["companies"])
-app.include_router(integrations.router, prefix="/integrations", tags=["Stocks and Taxes"])
+app.include_router(
+    integrations.router, prefix="/integrations", tags=["Stocks and Taxes"]
+)
 app.include_router(reviews.router, prefix="/reviews", tags=["reviews"])
 app.include_router(salaries.router, prefix="/salaries", tags=["salaries"])
 app.include_router(search.router, prefix="/search", tags=["search"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(files.router, prefix="/files", tags=["files"])
 
+
 @app.on_event("startup")
 async def start_scheduler():
     # Start the token cleanup task
     asyncio.create_task(start_token_cleanup_scheduler())
+
 
 if __name__ == "__main__":
     import uvicorn

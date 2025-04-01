@@ -29,7 +29,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return db_obj
 
     def update(
-            self, db: Session, *, db_obj: User, obj_in: Union[UserUpdate, Dict[str, Any]]
+        self, db: Session, *, db_obj: User, obj_in: Union[UserUpdate, Dict[str, Any]]
     ) -> User:
         if isinstance(obj_in, dict):
             update_data = obj_in
@@ -67,9 +67,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.refresh(user)
         return user
 
-    def set_verification_token(
-            self, db: Session, *, user_id: int, token: str
-    ) -> User:
+    def set_verification_token(self, db: Session, *, user_id: int, token: str) -> User:
         user = self.get(db, id=user_id)
         if user:
             user.verification_token = token
@@ -80,7 +78,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return user
 
     def set_password_reset_token(
-            self, db: Session, *, user_id: int, token: str
+        self, db: Session, *, user_id: int, token: str
     ) -> User:
         user = self.get(db, id=user_id)
         if user:
@@ -91,9 +89,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.refresh(user)
         return user
 
-    def reset_password(
-            self, db: Session, *, user_id: int, new_password: str
-    ) -> User:
+    def reset_password(self, db: Session, *, user_id: int, new_password: str) -> User:
         user = self.get(db, id=user_id)
         if user:
             hashed_password = get_password_hash(new_password)
@@ -105,14 +101,23 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             db.refresh(user)
         return user
 
-    def get_by_oauth_id(self, db: Session, *, provider: str, oauth_id: str) -> Optional[User]:
-        return db.query(User).filter(
-            User.oauth_provider == provider,
-            User.oauth_id == oauth_id
-        ).first()
+    def get_by_oauth_id(
+        self, db: Session, *, provider: str, oauth_id: str
+    ) -> Optional[User]:
+        return (
+            db.query(User)
+            .filter(User.oauth_provider == provider, User.oauth_id == oauth_id)
+            .first()
+        )
 
     def update_oauth_info(
-            self, db: Session, *, user_id: int, provider: str, oauth_id: str, oauth_data: str
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        provider: str,
+        oauth_id: str,
+        oauth_data: str,
     ) -> User:
         user = self.get(db, id=user_id)
         if user:
@@ -125,13 +130,24 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return user
 
     def create_oauth_user(
-            self, db: Session, *, email: str, first_name: str, last_name: str,
-            profile_image: Optional[str], provider: str, oauth_id: str, oauth_data: str,
-            is_verified: bool = False
+        self,
+        db: Session,
+        *,
+        email: str,
+        first_name: str,
+        last_name: str,
+        profile_image: Optional[str],
+        provider: str,
+        oauth_id: str,
+        oauth_data: str,
+        is_verified: bool = False,
     ) -> User:
         import secrets
         import string
-        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
+
+        password = "".join(
+            secrets.choice(string.ascii_letters + string.digits) for _ in range(20)
+        )
 
         db_obj = User(
             email=email,
@@ -143,7 +159,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             is_verified=is_verified,
             oauth_provider=provider,
             oauth_id=oauth_id,
-            oauth_data=oauth_data
+            oauth_data=oauth_data,
         )
         db.add(db_obj)
         db.commit()
@@ -151,13 +167,15 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return db_obj
 
     def create_email_change_verification(
-            self, db: Session, *, user_id: int, new_email: str
+        self, db: Session, *, user_id: int, new_email: str
     ) -> EmailChangeVerification:
         import secrets
         import string
         from datetime import datetime, timedelta
 
-        verification_code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(6))
+        verification_code = "".join(
+            secrets.choice(string.ascii_letters + string.digits) for _ in range(6)
+        )
 
         expires_at = datetime.now() + timedelta(hours=24)
 
@@ -169,7 +187,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             user_id=user_id,
             new_email=new_email,
             verification_code=verification_code,
-            expires_at=expires_at
+            expires_at=expires_at,
         )
         db.add(db_obj)
         db.commit()
@@ -177,20 +195,24 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         return db_obj
 
     def verify_email_change(
-            self, db: Session, *, user_id: int, verification_code: str
+        self, db: Session, *, user_id: int, verification_code: str
     ) -> Optional[EmailChangeVerification]:
         from datetime import datetime
 
-        verification = db.query(EmailChangeVerification).filter(
-            EmailChangeVerification.user_id == user_id,
-            EmailChangeVerification.verification_code == verification_code,
-            EmailChangeVerification.expires_at > datetime.now()
-        ).first()
+        verification = (
+            db.query(EmailChangeVerification)
+            .filter(
+                EmailChangeVerification.user_id == user_id,
+                EmailChangeVerification.verification_code == verification_code,
+                EmailChangeVerification.expires_at > datetime.now(),
+            )
+            .first()
+        )
 
         return verification
 
     def complete_email_change(
-            self, db: Session, *, user_id: int, new_email: str
+        self, db: Session, *, user_id: int, new_email: str
     ) -> User | None:
         user = self.get(db, id=user_id)
         if not user:
@@ -206,5 +228,6 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.commit()
         db.refresh(user)
         return user
+
 
 user = CRUDUser(User)

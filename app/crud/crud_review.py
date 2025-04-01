@@ -9,53 +9,72 @@ from app.schemas.review import ReviewCreate, ReviewUpdate
 
 class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
     def create_with_owner(
-            self, db: Session, *, obj_in: ReviewCreate, user_id: int
+        self, db: Session, *, obj_in: ReviewCreate, user_id: int
     ) -> Review:
-        
+
         obj_in_data = obj_in.dict()
         db_obj = Review(**obj_in_data, user_id=user_id)
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
-        
+
         return db_obj
 
     def get_company_reviews(
-            self, db: Session, *, company_id: int, skip: int = 0, limit: int = 100,
-            status: ReviewStatus = ReviewStatus.VERIFIED
+        self,
+        db: Session,
+        *,
+        company_id: int,
+        skip: int = 0,
+        limit: int = 100,
+        status: ReviewStatus = ReviewStatus.VERIFIED,
     ) -> list[Type[Review]]:
-        
-        return db.query(Review).filter(
-            Review.company_id == company_id,
-            Review.status == status
-        ).order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
+
+        return (
+            db.query(Review)
+            .filter(Review.company_id == company_id, Review.status == status)
+            .order_by(Review.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get_user_reviews(
-            self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100
+        self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100
     ) -> list[Type[Review]]:
-        
-        return db.query(Review).filter(
-            Review.user_id == user_id
-        ).order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
+
+        return (
+            db.query(Review)
+            .filter(Review.user_id == user_id)
+            .order_by(Review.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get_pending_reviews(
-            self, db: Session, *, skip: int = 0, limit: int = 100
+        self, db: Session, *, skip: int = 0, limit: int = 100
     ) -> list[Type[Review]]:
-        
-        return db.query(Review).filter(
-            Review.status == ReviewStatus.PENDING
-        ).order_by(Review.created_at).offset(skip).limit(limit).all()
+
+        return (
+            db.query(Review)
+            .filter(Review.status == ReviewStatus.PENDING)
+            .order_by(Review.created_at)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def search_reviews(
-            self,
-            db: Session,
-            *,
-            query: Optional[str] = None,
-            company_id: Optional[int] = None,
-            min_rating: Optional[float] = None,
-            max_rating: Optional[float] = None,
-            skip: int = 0,
-            limit: int = 100
+        self,
+        db: Session,
+        *,
+        query: Optional[str] = None,
+        company_id: Optional[int] = None,
+        min_rating: Optional[float] = None,
+        max_rating: Optional[float] = None,
+        skip: int = 0,
+        limit: int = 100,
     ) -> list[Type[Review]]:
         search_query = db.query(Review).filter(Review.status == ReviewStatus.VERIFIED)
 
@@ -64,7 +83,7 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
                 or_(
                     Review.pros.ilike(f"%{query}%"),
                     Review.cons.ilike(f"%{query}%"),
-                    Review.recommendations.ilike(f"%{query}%")
+                    Review.recommendations.ilike(f"%{query}%"),
                 )
             )
 
@@ -77,10 +96,20 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
         if max_rating is not None:
             search_query = search_query.filter(Review.rating <= max_rating)
 
-        return search_query.order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
+        return (
+            search_query.order_by(Review.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def update_status(
-            self, db: Session, *, review_id: int, status: ReviewStatus, moderation_notes: Optional[str] = None
+        self,
+        db: Session,
+        *,
+        review_id: int,
+        status: ReviewStatus,
+        moderation_notes: Optional[str] = None,
     ) -> Type[Review] | None:
         review = db.query(Review).filter(Review.id == review_id).first()
         if not review:
@@ -96,14 +125,19 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
         return review
 
     def add_ai_flag(
-            self, db: Session, *, review_id: int, flag_type: str, flag_description: str,
-            flagged_text: Optional[str] = None
+        self,
+        db: Session,
+        *,
+        review_id: int,
+        flag_type: str,
+        flag_description: str,
+        flagged_text: Optional[str] = None,
     ) -> AIScannerFlag:
         flag = AIScannerFlag(
             review_id=review_id,
             flag_type=flag_type,
             flag_description=flag_description,
-            flagged_text=flagged_text
+            flagged_text=flagged_text,
         )
         db.add(flag)
         db.commit()
@@ -115,9 +149,12 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, ReviewUpdate]):
         db.commit()
 
     def get_with_attachments(self, db: Session, *, id: int) -> Optional[Review]:
-        return db.query(Review).filter(Review.id == id).options(
-            joinedload(Review.file_attachments)
-        ).first()
+        return (
+            db.query(Review)
+            .filter(Review.id == id)
+            .options(joinedload(Review.file_attachments))
+            .first()
+        )
 
 
 review = CRUDReview(Review)

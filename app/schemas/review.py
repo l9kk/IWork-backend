@@ -17,17 +17,21 @@ class ReviewBase(BaseModel):
     recommendations: Optional[str] = None
     is_anonymous: bool = False
 
-    @validator('rating')
+    @validator("rating")
     def rating_range(cls, v):
         if v < 1 or v > 5:
-            raise ValueError('Rating must be between 1 and 5')
+            raise ValueError("Rating must be between 1 and 5")
         return v
 
-    @validator('employment_end_date')
+    @validator("employment_end_date")
     def end_date_after_start_date(cls, v, values):
-        if v is not None and 'employment_start_date' in values and values['employment_start_date'] is not None:
-            if v < values['employment_start_date']:
-                raise ValueError('End date must be after start date')
+        if (
+            v is not None
+            and "employment_start_date" in values
+            and values["employment_start_date"] is not None
+        ):
+            if v < values["employment_start_date"]:
+                raise ValueError("End date must be after start date")
         return v
 
 
@@ -45,19 +49,23 @@ class ReviewUpdate(BaseModel):
     recommendations: Optional[str] = None
     is_anonymous: Optional[bool] = None
 
-    @validator('rating')
+    @validator("rating")
     def rating_range(cls, v):
         if v is None:
             return v
         if v < 1 or v > 5:
-            raise ValueError('Rating must be between 1 and 5')
+            raise ValueError("Rating must be between 1 and 5")
         return v
 
-    @validator('employment_end_date')
+    @validator("employment_end_date")
     def end_date_after_start_date(cls, v, values):
-        if v is not None and 'employment_start_date' in values and values['employment_start_date'] is not None:
-            if v < values['employment_start_date']:
-                raise ValueError('End date must be after start date')
+        if (
+            v is not None
+            and "employment_start_date" in values
+            and values["employment_start_date"] is not None
+        ):
+            if v < values["employment_start_date"]:
+                raise ValueError("End date must be after start date")
         return v
 
 
@@ -80,9 +88,7 @@ class ReviewResponse(BaseModel):
 
     model_config = {
         "from_attributes": True,
-        "json_encoders": {
-            datetime: lambda dt: dt.isoformat()
-        }
+        "json_encoders": {datetime: lambda dt: dt.isoformat()},
     }
 
 
@@ -90,11 +96,9 @@ class AdminReviewResponse(ReviewResponse):
     user_id: int
     moderation_notes: Optional[str] = None
 
+
 class UserReviewsResponse(BaseModel):
     total_count: int
     reviews: List[ReviewResponse]
 
-    model_config = {
-        "from_attributes": True
-    }
-
+    model_config = {"from_attributes": True}

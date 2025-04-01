@@ -25,11 +25,15 @@ class Company(Base):
     search_vector = Column(TSVECTOR, nullable=True)
 
     __table_args__ = (
-        Index('idx_company_search_vector', search_vector, postgresql_using='gin'),
+        Index("idx_company_search_vector", search_vector, postgresql_using="gin"),
     )
 
     # Relationships
-    reviews = relationship("Review", back_populates="company", cascade="all, delete-orphan")
-    salaries = relationship("Salary", back_populates="company", cascade="all, delete-orphan")
+    reviews = relationship(
+        "Review", back_populates="company", cascade="all, delete-orphan"
+    )
+    salaries = relationship(
+        "Salary", back_populates="company", cascade="all, delete-orphan"
+    )
 
     sec_cik = Column(String, nullable=True, index=True)

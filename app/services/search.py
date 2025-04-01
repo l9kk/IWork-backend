@@ -13,29 +13,29 @@ logger = logging.getLogger(__name__)
 class SearchService:
     @staticmethod
     def search_reviews(
-            db: Session,
-            query: str,
-            company_id: Optional[int] = None,
-            min_rating: Optional[float] = None,
-            max_rating: Optional[float] = None,
-            skip: int = 0,
-            limit: int = 20,
-            status: ReviewStatus = ReviewStatus.VERIFIED
+        db: Session,
+        query: str,
+        company_id: Optional[int] = None,
+        min_rating: Optional[float] = None,
+        max_rating: Optional[float] = None,
+        skip: int = 0,
+        limit: int = 20,
+        status: ReviewStatus = ReviewStatus.VERIFIED,
     ) -> Tuple[List[Review], int]:
         """
         Search reviews using full-text search
         Returns: (list of reviews, total count)
         """
-        tsquery = func.plainto_tsquery('english', query)
+        tsquery = func.plainto_tsquery("english", query)
 
         search_query = db.query(Review).filter(Review.status == status)
 
         if query and query.strip():
-            search_query = search_query.filter(Review.search_vector.op('@@')(tsquery))
+            search_query = search_query.filter(Review.search_vector.op("@@")(tsquery))
 
             search_query = search_query.order_by(
                 func.ts_rank(Review.search_vector, tsquery).desc(),
-                Review.created_at.desc()
+                Review.created_at.desc(),
             )
         else:
             search_query = search_query.order_by(Review.created_at.desc())
@@ -57,23 +57,23 @@ class SearchService:
 
     @staticmethod
     def search_companies(
-            db: Session,
-            query: str,
-            industry: Optional[str] = None,
-            location: Optional[str] = None,
-            skip: int = 0,
-            limit: int = 20
+        db: Session,
+        query: str,
+        industry: Optional[str] = None,
+        location: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 20,
     ) -> Tuple[List[Company], int]:
         """
         Search companies using full-text search
         Returns: (list of companies, total count)
         """
-        tsquery = func.plainto_tsquery('english', query)
+        tsquery = func.plainto_tsquery("english", query)
 
         search_query = db.query(Company)
 
         if query and query.strip():
-            search_query = search_query.filter(Company.search_vector.op('@@')(tsquery))
+            search_query = search_query.filter(Company.search_vector.op("@@")(tsquery))
 
             search_query = search_query.order_by(
                 func.ts_rank(Company.search_vector, tsquery).desc()
@@ -93,11 +93,11 @@ class SearchService:
 
     @staticmethod
     def advanced_search(
-            db: Session,
-            query: str,
-            entity_types: List[str] = ["reviews", "companies", "salaries"],
-            skip: int = 0,
-            limit: int = 20
+        db: Session,
+        query: str,
+        entity_types: List[str] = ["reviews", "companies", "salaries"],
+        skip: int = 0,
+        limit: int = 20,
     ) -> Dict[str, Any]:
         """
         Unified search across multiple entity types
@@ -123,10 +123,12 @@ class SearchService:
         if "salaries" in entity_types:
             salary_query = (
                 db.query(Salary)
-                .filter(or_(
-                    Salary.job_title.ilike(f"%{query}%"),
-                    Salary.location.ilike(f"%{query}%")
-                ))
+                .filter(
+                    or_(
+                        Salary.job_title.ilike(f"%{query}%"),
+                        Salary.location.ilike(f"%{query}%"),
+                    )
+                )
                 .order_by(Salary.created_at.desc())
             )
 
@@ -141,11 +143,13 @@ class SearchService:
             "total_counts": total_counts,
             "query": query,
             "skip": skip,
-            "limit": limit
+            "limit": limit,
         }
 
     @staticmethod
-    def get_search_highlights(text: str, query: str, max_length: int = 200) -> Optional[str]:
+    def get_search_highlights(
+        text: str, query: str, max_length: int = 200
+    ) -> Optional[str]:
         """
         Generate search result highlights by extracting relevant snippets from text
         """
@@ -174,11 +178,11 @@ class SearchService:
         start_pos = max(0, best_pos - 50)
 
         if start_pos > 0:
-            while start_pos > 0 and text[start_pos] != ' ':
+            while start_pos > 0 and text[start_pos] != " ":
                 start_pos -= 1
             start_pos += 1
 
-        highlight = text[start_pos:start_pos + max_length]
+        highlight = text[start_pos : start_pos + max_length]
 
         if start_pos > 0:
             highlight = "..." + highlight

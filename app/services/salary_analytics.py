@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 class SalaryAnalyticsService:
     @staticmethod
     def get_detailed_salary_breakdown(
-            db: Session,
-            job_title: Optional[str] = None,
-            company_id: Optional[int] = None,
-            industry: Optional[str] = None,
-            location: Optional[str] = None,
-            currency: str = "USD"
+        db: Session,
+        job_title: Optional[str] = None,
+        company_id: Optional[int] = None,
+        industry: Optional[str] = None,
+        location: Optional[str] = None,
+        currency: str = "USD",
     ) -> Dict[str, Any]:
         base_query = db.query(Salary).filter(Salary.currency == currency)
 
@@ -54,19 +54,19 @@ class SalaryAnalyticsService:
                 employment_breakdown[emp_type.value] = type_stats
 
         location_breakdown = {}
-        locations_query = db.query(
-            Salary.location,
-            func.count(Salary.id).label("count"),
-            func.avg(Salary.salary_amount).label("avg"),
-            func.min(Salary.salary_amount).label("min"),
-            func.max(Salary.salary_amount).label("max")
-        ).filter(
-            Salary.location.isnot(None)
-        ).group_by(
-            Salary.location
-        ).order_by(
-            func.count(Salary.id).desc()
-        ).limit(5)
+        locations_query = (
+            db.query(
+                Salary.location,
+                func.count(Salary.id).label("count"),
+                func.avg(Salary.salary_amount).label("avg"),
+                func.min(Salary.salary_amount).label("min"),
+                func.max(Salary.salary_amount).label("max"),
+            )
+            .filter(Salary.location.isnot(None))
+            .group_by(Salary.location)
+            .order_by(func.count(Salary.id).desc())
+            .limit(5)
+        )
 
         for loc in locations_query:
             if loc.count > 0:
@@ -74,25 +74,24 @@ class SalaryAnalyticsService:
                     "avg_salary": float(loc.avg),
                     "min_salary": float(loc.min),
                     "max_salary": float(loc.max),
-                    "count": loc.count
+                    "count": loc.count,
                 }
 
         industry_breakdown = {}
-        industry_query = db.query(
-            Company.industry,
-            func.count(Salary.id).label("count"),
-            func.avg(Salary.salary_amount).label("avg"),
-            func.min(Salary.salary_amount).label("min"),
-            func.max(Salary.salary_amount).label("max")
-        ).join(
-            Company, Salary.company_id == Company.id
-        ).filter(
-            Company.industry.isnot(None)
-        ).group_by(
-            Company.industry
-        ).order_by(
-            func.count(Salary.id).desc()
-        ).limit(5)
+        industry_query = (
+            db.query(
+                Company.industry,
+                func.count(Salary.id).label("count"),
+                func.avg(Salary.salary_amount).label("avg"),
+                func.min(Salary.salary_amount).label("min"),
+                func.max(Salary.salary_amount).label("max"),
+            )
+            .join(Company, Salary.company_id == Company.id)
+            .filter(Company.industry.isnot(None))
+            .group_by(Company.industry)
+            .order_by(func.count(Salary.id).desc())
+            .limit(5)
+        )
 
         for ind in industry_query:
             if ind.count > 0:
@@ -100,7 +99,7 @@ class SalaryAnalyticsService:
                     "avg_salary": float(ind.avg),
                     "min_salary": float(ind.min),
                     "max_salary": float(ind.max),
-                    "count": ind.count
+                    "count": ind.count,
                 }
 
         return {
@@ -114,19 +113,19 @@ class SalaryAnalyticsService:
                 "job_title": job_title,
                 "company_id": company_id,
                 "industry": industry,
-                "location": location
-            }
+                "location": location,
+            },
         }
 
     @staticmethod
     def get_comparative_analysis(
-            db: Session,
-            job_title: str,
-            company_id: Optional[int] = None,
-            location: Optional[str] = None,
-            experience_level: Optional[ExperienceLevel] = None,
-            employment_type: Optional[EmploymentType] = None,
-            currency: str = "USD"
+        db: Session,
+        job_title: str,
+        company_id: Optional[int] = None,
+        location: Optional[str] = None,
+        experience_level: Optional[ExperienceLevel] = None,
+        employment_type: Optional[EmploymentType] = None,
+        currency: str = "USD",
     ) -> Dict[str, Any]:
         result = {
             "job_title": job_title,
@@ -136,14 +135,15 @@ class SalaryAnalyticsService:
             "filters": {
                 "company_id": company_id,
                 "location": location,
-                "experience_level": experience_level.value if experience_level else None,
-                "employment_type": employment_type.value if employment_type else None
-            }
+                "experience_level": (
+                    experience_level.value if experience_level else None
+                ),
+                "employment_type": employment_type.value if employment_type else None,
+            },
         }
 
         base_query = db.query(Salary).filter(
-            Salary.job_title.ilike(f"%{job_title}%"),
-            Salary.currency == currency
+            Salary.job_title.ilike(f"%{job_title}%"), Salary.currency == currency
         )
 
         if experience_level:
@@ -157,20 +157,26 @@ class SalaryAnalyticsService:
 
             if company:
                 company_query = base_query.filter(Salary.company_id == company_id)
-                company_stats = SalaryAnalyticsService._calculate_statistics(db, company_query)
+                company_stats = SalaryAnalyticsService._calculate_statistics(
+                    db, company_query
+                )
 
                 industry_query = base_query.join(
                     Company, Salary.company_id == Company.id
                 ).filter(
                     Company.industry == company.industry,
-                    Salary.company_id != company_id
+                    Salary.company_id != company_id,
                 )
-                industry_stats = SalaryAnalyticsService._calculate_statistics(db, industry_query)
+                industry_stats = SalaryAnalyticsService._calculate_statistics(
+                    db, industry_query
+                )
 
                 if company_stats["count"] > 0 and industry_stats["count"] > 0:
                     # Calculate percentage difference
-                    percent_diff = ((company_stats["avg_salary"] - industry_stats["avg_salary"]) /
-                                    industry_stats["avg_salary"]) * 100
+                    percent_diff = (
+                        (company_stats["avg_salary"] - industry_stats["avg_salary"])
+                        / industry_stats["avg_salary"]
+                    ) * 100
 
                     result["company_comparison"] = {
                         "company_name": company.name,
@@ -180,21 +186,25 @@ class SalaryAnalyticsService:
                         "industry_avg_salary": industry_stats["avg_salary"],
                         "industry_sample_size": industry_stats["count"],
                         "percent_difference": round(percent_diff, 2),
-                        "is_above_industry_avg": percent_diff > 0
+                        "is_above_industry_avg": percent_diff > 0,
                     }
 
         if location:
             location_query = base_query.filter(Salary.location.ilike(f"%{location}%"))
-            location_stats = SalaryAnalyticsService._calculate_statistics(db, location_query)
-
-            national_query = base_query.filter(
-                ~Salary.location.ilike(f"%{location}%")
+            location_stats = SalaryAnalyticsService._calculate_statistics(
+                db, location_query
             )
-            national_stats = SalaryAnalyticsService._calculate_statistics(db, national_query)
+
+            national_query = base_query.filter(~Salary.location.ilike(f"%{location}%"))
+            national_stats = SalaryAnalyticsService._calculate_statistics(
+                db, national_query
+            )
 
             if location_stats["count"] > 0 and national_stats["count"] > 0:
-                percent_diff = ((location_stats["avg_salary"] - national_stats["avg_salary"]) /
-                                national_stats["avg_salary"]) * 100
+                percent_diff = (
+                    (location_stats["avg_salary"] - national_stats["avg_salary"])
+                    / national_stats["avg_salary"]
+                ) * 100
 
                 result["location_comparison"] = {
                     "location_name": location,
@@ -203,27 +213,31 @@ class SalaryAnalyticsService:
                     "national_avg_salary": national_stats["avg_salary"],
                     "national_sample_size": national_stats["count"],
                     "percent_difference": round(percent_diff, 2),
-                    "is_above_national_avg": percent_diff > 0
+                    "is_above_national_avg": percent_diff > 0,
                 }
 
         return result
 
     @staticmethod
     def _calculate_statistics(db: Session, query) -> Dict[str, Any]:
-        stats = db.query(
-            func.count(Salary.id).label("count"),
-            func.avg(Salary.salary_amount).label("avg"),
-            func.min(Salary.salary_amount).label("min"),
-            func.max(Salary.salary_amount).label("max"),
-            func.stddev(Salary.salary_amount).label("stddev")
-        ).select_from(query.subquery()).first()
+        stats = (
+            db.query(
+                func.count(Salary.id).label("count"),
+                func.avg(Salary.salary_amount).label("avg"),
+                func.min(Salary.salary_amount).label("min"),
+                func.max(Salary.salary_amount).label("max"),
+                func.stddev(Salary.salary_amount).label("stddev"),
+            )
+            .select_from(query.subquery())
+            .first()
+        )
 
         result = {
             "count": stats.count,
             "avg_salary": float(stats.avg) if stats.avg is not None else 0,
             "min_salary": float(stats.min) if stats.min is not None else 0,
             "max_salary": float(stats.max) if stats.max is not None else 0,
-            "stddev": float(stats.stddev) if stats.stddev is not None else 0
+            "stddev": float(stats.stddev) if stats.stddev is not None else 0,
         }
 
         if stats.count == 0:

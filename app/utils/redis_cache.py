@@ -15,10 +15,7 @@ class DateTimeEncoder(json.JSONEncoder):
 
 class RedisClient:
     def __init__(self):
-        self.redis = Redis(
-            url=settings.REDIS_URL,
-            token=settings.REDIS_TOKEN
-        )
+        self.redis = Redis(url=settings.REDIS_URL, token=settings.REDIS_TOKEN)
 
     async def get(self, key: str) -> Optional[Any]:
         value = self.redis.get(key)
@@ -37,7 +34,7 @@ class RedisClient:
                 value = value.model_dump()
             else:
                 value = value.dict()
-        
+
         if isinstance(value, (dict, list)):
             value = json.dumps(value, cls=DateTimeEncoder)
 

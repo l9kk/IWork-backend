@@ -6,6 +6,7 @@ from typing import Optional, List, Union, Dict
 
 load_dotenv()
 
+
 class Settings(BaseModel):
     PROJECT_NAME: str = "IWork API"
     SECRET_KEY: str = os.getenv("SECRET_KEY")
@@ -39,15 +40,21 @@ class Settings(BaseModel):
     # Frontend URLs
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-    VERIFICATION_TOKEN_EXPIRE_HOURS: int = int(os.getenv("VERIFICATION_TOKEN_EXPIRE_HOURS"))
-    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_HOURS"))
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = int(
+        os.getenv("VERIFICATION_TOKEN_EXPIRE_HOURS")
+    )
+    PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = int(
+        os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_HOURS")
+    )
 
     # Templates directory
     EMAIL_TEMPLATES_DIR: str = os.getenv("EMAIL_TEMPLATES_DIR", "app/email-templates")
 
     # Security settings
     CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS").split(",")
-    CORS_ALLOW_CREDENTIALS: bool = os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
+    CORS_ALLOW_CREDENTIALS: bool = (
+        os.getenv("CORS_ALLOW_CREDENTIALS", "True").lower() == "true"
+    )
 
     # AWS S3 settings
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
@@ -78,5 +85,6 @@ class Settings(BaseModel):
     class Config:
         env_file = ".env"
         case_sensitive = True
+
 
 settings = Settings()

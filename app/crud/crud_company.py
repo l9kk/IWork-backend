@@ -12,14 +12,14 @@ from app.schemas.company import CompanyCreate, CompanyUpdate
 
 class CRUDCompany(CRUDBase[Company, CompanyCreate, CompanyUpdate]):
     def search(
-            self,
-            db: Session,
-            *,
-            query: str = "",
-            industry: Optional[str] = None,
-            location: Optional[str] = None,
-            skip: int = 0,
-            limit: int = 100
+        self,
+        db: Session,
+        *,
+        query: str = "",
+        industry: Optional[str] = None,
+        location: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100,
     ) -> List[Company]:
         search_query = db.query(Company)
 
@@ -41,18 +41,21 @@ class CRUDCompany(CRUDBase[Company, CompanyCreate, CompanyUpdate]):
             return None
 
         # Get review stats for verified reviews only
-        review_stats = db.query(
-            func.avg(Review.rating).label("avg_rating"),
-            func.count(Review.id).label("review_count")
-        ).filter(
-            Review.company_id == id,
-            Review.status == ReviewStatus.VERIFIED
-        ).first()
+        review_stats = (
+            db.query(
+                func.avg(Review.rating).label("avg_rating"),
+                func.count(Review.id).label("review_count"),
+            )
+            .filter(Review.company_id == id, Review.status == ReviewStatus.VERIFIED)
+            .first()
+        )
 
         return {
             "company": company,
-            "avg_rating": float(review_stats.avg_rating) if review_stats.avg_rating else 0.0,
-            "review_count": review_stats.review_count
+            "avg_rating": (
+                float(review_stats.avg_rating) if review_stats.avg_rating else 0.0
+            ),
+            "review_count": review_stats.review_count,
         }
 
 

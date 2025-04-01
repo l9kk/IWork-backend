@@ -26,21 +26,25 @@ class Salary(Base):
     __tablename__ = "salaries"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    company_id = Column(
+        Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False
+    )
     job_title = Column(String, index=True, nullable=False)
     salary_amount = Column(Float, nullable=False)
     currency = Column(String, nullable=False, default="USD")
     experience_level = Column(
-        String, 
+        String,
         nullable=False,
-        info={'enum_values': [level.value for level in ExperienceLevel]}
+        info={"enum_values": [level.value for level in ExperienceLevel]},
     )
     employment_type = Column(
-        String, 
-        nullable=False, 
+        String,
+        nullable=False,
         default=EmploymentType.FULL_TIME.value,
-        info={'enum_values': [type.value for type in EmploymentType]}
+        info={"enum_values": [type.value for type in EmploymentType]},
     )
     location = Column(String, nullable=True)
     is_anonymous = Column(Boolean, default=True)

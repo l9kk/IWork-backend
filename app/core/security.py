@@ -11,7 +11,7 @@ ALGORITHM = "HS256"
 
 
 def create_access_token(
-        subject: Union[str, Any], expires_delta: timedelta = None, jti: str = None
+    subject: Union[str, Any], expires_delta: timedelta = None, jti: str = None
 ) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -23,12 +23,7 @@ def create_access_token(
     if not jti:
         jti = str(uuid.uuid4())
 
-    to_encode = {
-        "exp": expire,
-        "sub": str(subject),
-        "jti": jti,
-        "type": "access"
-    }
+    to_encode = {"exp": expire, "sub": str(subject), "jti": jti, "type": "access"}
 
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

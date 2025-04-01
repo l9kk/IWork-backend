@@ -26,13 +26,13 @@ class SearchResult(BaseModel):
 
 @router.get("/fulltext", response_model=SearchResult)
 async def full_text_search(
-        *,
-        db: Session = Depends(get_db),
-        redis: RedisClient = Depends(get_redis),
-        query: str,
-        entity_types: List[str] = Query(["reviews", "companies", "salaries"]),
-        skip: int = 0,
-        limit: int = 20
+    *,
+    db: Session = Depends(get_db),
+    redis: RedisClient = Depends(get_redis),
+    query: str,
+    entity_types: List[str] = Query(["reviews", "companies", "salaries"]),
+    skip: int = 0,
+    limit: int = 20,
 ):
     """
     Perform full-text search across multiple entities.
@@ -43,21 +43,21 @@ async def full_text_search(
     - limit: Maximum number of results to return per entity type
     """
 
-    cache_key = f"search:fulltext:{query}:{','.join(sorted(entity_types))}:{skip}:{limit}"
+    cache_key = (
+        f"search:fulltext:{query}:{','.join(sorted(entity_types))}:{skip}:{limit}"
+    )
 
     cached_result = await redis.get(cache_key)
     if cached_result:
         return cached_result
 
-    search_result = SearchService.advanced_search(
-        db, query, entity_types, skip, limit
-    )
+    search_result = SearchService.advanced_search(db, query, entity_types, skip, limit)
 
     response = {
         "query": query,
         "skip": skip,
         "limit": limit,
-        "total_counts": search_result["total_counts"]
+        "total_counts": search_result["total_counts"],
     }
 
     if "reviews" in search_result["results"]:
@@ -78,37 +78,43 @@ async def full_text_search(
             if not highlight and review.cons:
                 highlight = SearchService.get_search_highlights(review.cons, query)
             if not highlight and review.recommendations:
-                highlight = SearchService.get_search_highlights(review.recommendations, query)
+                highlight = SearchService.get_search_highlights(
+                    review.recommendations, query
+                )
 
-            reviews.append(ReviewResponse(
-                id=review.id,
-                company_id=review.company_id,
-                company_name=company_name,
-                rating=review.rating,
-                employee_status=review.employee_status,
-                employment_start_date=review.employment_start_date,
-                employment_end_date=review.employment_end_date,
-                pros=review.pros,
-                cons=review.cons,
-                recommendations=review.recommendations,
-                status=review.status,
-                created_at=review.created_at,
-                user_name=user_name,
-                highlight=highlight
-            ))
+            reviews.append(
+                ReviewResponse(
+                    id=review.id,
+                    company_id=review.company_id,
+                    company_name=company_name,
+                    rating=review.rating,
+                    employee_status=review.employee_status,
+                    employment_start_date=review.employment_start_date,
+                    employment_end_date=review.employment_end_date,
+                    pros=review.pros,
+                    cons=review.cons,
+                    recommendations=review.recommendations,
+                    status=review.status,
+                    created_at=review.created_at,
+                    user_name=user_name,
+                    highlight=highlight,
+                )
+            )
 
         response["reviews"] = reviews
 
     if "companies" in search_result["results"]:
         companies = []
         for company in search_result["results"]["companies"]:
-            companies.append(CompanyResponse(
-                id=company.id,
-                name=company.name,
-                industry=company.industry,
-                location=company.location,
-                logo_url=company.logo_url
-            ))
+            companies.append(
+                CompanyResponse(
+                    id=company.id,
+                    name=company.name,
+                    industry=company.industry,
+                    location=company.location,
+                    logo_url=company.logo_url,
+                )
+            )
 
         response["companies"] = companies
 
@@ -118,18 +124,20 @@ async def full_text_search(
             company = crud.company.get(db, id=salary.company_id)
             company_name = company.name if company else "Unknown Company"
 
-            salaries.append(SalaryResponse(
-                id=salary.id,
-                company_id=salary.company_id,
-                company_name=company_name,
-                job_title=salary.job_title,
-                salary_amount=salary.salary_amount,
-                currency=salary.currency,
-                experience_level=salary.experience_level,
-                employment_type=salary.employment_type,
-                location=salary.location,
-                created_at=salary.created_at
-            ))
+            salaries.append(
+                SalaryResponse(
+                    id=salary.id,
+                    company_id=salary.company_id,
+                    company_name=company_name,
+                    job_title=salary.job_title,
+                    salary_amount=salary.salary_amount,
+                    currency=salary.currency,
+                    experience_level=salary.experience_level,
+                    employment_type=salary.employment_type,
+                    location=salary.location,
+                    created_at=salary.created_at,
+                )
+            )
 
         response["salaries"] = salaries
 

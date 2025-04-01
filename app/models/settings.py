@@ -8,7 +8,9 @@ class AccountSettings(Base):
     __tablename__ = "account_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
 
     email_notifications_enabled = Column(Boolean, default=True)
     notify_on_review_approval = Column(Boolean, default=True)

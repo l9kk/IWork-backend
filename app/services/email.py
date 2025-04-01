@@ -15,12 +15,14 @@ from app.db.base import SessionLocal
 
 logger = logging.getLogger(__name__)
 
-templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "email-templates")
+templates_dir = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "email-templates"
+)
 os.makedirs(templates_dir, exist_ok=True)
 
 env = Environment(
     loader=FileSystemLoader(templates_dir),
-    autoescape=select_autoescape(['html', 'xml'])
+    autoescape=select_autoescape(["html", "xml"]),
 )
 
 # Email connection configuration
@@ -35,7 +37,7 @@ conf = ConnectionConfig(
     MAIL_SSL_TLS=False,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
-    TEMPLATE_FOLDER=Path(templates_dir)
+    TEMPLATE_FOLDER=Path(templates_dir),
 )
 
 
@@ -54,10 +56,10 @@ def get_email_db_session():
 
 
 async def send_email(
-        email_to: List[str],
-        subject: str,
-        template_name: str,
-        template_data: Dict[str, Any],
+    email_to: List[str],
+    subject: str,
+    template_name: str,
+    template_data: Dict[str, Any],
 ) -> None:
     """
     Send an email using the provided template and data.
@@ -76,7 +78,7 @@ async def send_email(
             subject=subject,
             recipients=email_to,
             body=html_content,
-            subtype=MessageType.html
+            subtype=MessageType.html,
         )
 
         fm = FastMail(conf)
@@ -95,9 +97,7 @@ def generate_verification_token(user_id: int) -> str:
 
     expires_delta = timedelta(hours=settings.VERIFICATION_TOKEN_EXPIRE_HOURS)
     return create_access_token(
-        subject=user_id,
-        expires_delta=expires_delta,
-        jti=f"verification_{user_id}"
+        subject=user_id, expires_delta=expires_delta, jti=f"verification_{user_id}"
     )
 
 
@@ -107,40 +107,45 @@ def generate_password_reset_token(user_id: int) -> str:
     """
     expires_delta = timedelta(hours=settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS)
     return create_access_token(
-        subject=user_id,
-        expires_delta=expires_delta,
-        jti=f"password_reset_{user_id}"
+        subject=user_id, expires_delta=expires_delta, jti=f"password_reset_{user_id}"
     )
 
 
-async def send_verification_email(user_email: str, user_first_name: str, user_id: int) -> None:
+async def send_verification_email(
+    user_email: str, user_first_name: str, user_id: int
+) -> None:
     """
     Send an email verification link to the user.
     """
     verification_token = generate_verification_token(user_id)
 
-    verification_url = f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+    verification_url = (
+        f"{settings.FRONTEND_URL}/verify-email?token={verification_token}"
+    )
 
     subject = "Verify your email address"
     template_data = {
         "user": {"first_name": user_first_name},
         "verification_url": verification_url,
-        "expire_hours": settings.VERIFICATION_TOKEN_EXPIRE_HOURS
+        "expire_hours": settings.VERIFICATION_TOKEN_EXPIRE_HOURS,
     }
 
     with get_email_db_session() as db:
         from app import crud
+
         crud.user.set_verification_token(db, user_id=user_id, token=verification_token)
 
     await send_email(
         email_to=[user_email],
         subject=subject,
         template_name="verification.html",
-        template_data=template_data
+        template_data=template_data,
     )
 
 
-async def send_password_reset_email(user_email: str, user_first_name: str, user_id: int) -> None:
+async def send_password_reset_email(
+    user_email: str, user_first_name: str, user_id: int
+) -> None:
     """
     Send a password reset link to the user.
     """
@@ -152,22 +157,27 @@ async def send_password_reset_email(user_email: str, user_first_name: str, user_
     template_data = {
         "user": {"first_name": user_first_name},
         "reset_url": reset_url,
-        "expire_hours": settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS
+        "expire_hours": settings.PASSWORD_RESET_TOKEN_EXPIRE_HOURS,
     }
 
     with get_email_db_session() as db:
         from app import crud
-        crud.user.set_password_reset_token(db, user_id=user_id, token=password_reset_token)
+
+        crud.user.set_password_reset_token(
+            db, user_id=user_id, token=password_reset_token
+        )
 
     await send_email(
         email_to=[user_email],
         subject=subject,
         template_name="reset_password.html",
-        template_data=template_data
+        template_data=template_data,
     )
 
 
-async def send_review_approved_email(user_email: str, user_first_name: str, company_name: str, review_id: int) -> None:
+async def send_review_approved_email(
+    user_email: str, user_first_name: str, company_name: str, review_id: int
+) -> None:
     """
     Send a notification email when a review is approved.
     """
@@ -177,22 +187,19 @@ async def send_review_approved_email(user_email: str, user_first_name: str, comp
     template_data = {
         "user": {"first_name": user_first_name},
         "company_name": company_name,
-        "review_url": review_url
+        "review_url": review_url,
     }
 
     await send_email(
         email_to=[user_email],
         subject=subject,
         template_name="review_approved.html",
-        template_data=template_data
+        template_data=template_data,
     )
 
 
 async def send_review_rejected_email(
-        user_email: str,
-        user_first_name: str,
-        company_name: str,
-        rejection_reason: str
+    user_email: str, user_first_name: str, company_name: str, rejection_reason: str
 ) -> None:
     """
     Send a notification email when a review is rejected.
@@ -201,21 +208,19 @@ async def send_review_rejected_email(
     template_data = {
         "user": {"first_name": user_first_name},
         "company_name": company_name,
-        "rejection_reason": rejection_reason
+        "rejection_reason": rejection_reason,
     }
 
     await send_email(
         email_to=[user_email],
         subject=subject,
         template_name="review_rejected.html",
-        template_data=template_data
+        template_data=template_data,
     )
 
 
 async def send_email_change_verification(
-    user_email: str, 
-    user_first_name: str, 
-    verification_code: str
+    user_email: str, user_first_name: str, verification_code: str
 ) -> None:
     """
     Send an email with verification code for email change.
@@ -224,12 +229,12 @@ async def send_email_change_verification(
     template_data = {
         "user": {"first_name": user_first_name},
         "verification_code": verification_code,
-        "expire_hours": 24
+        "expire_hours": 24,
     }
 
     await send_email(
         email_to=[user_email],
         subject=subject,
         template_name="email_change.html",
-        template_data=template_data
+        template_data=template_data,
     )

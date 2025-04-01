@@ -16,11 +16,11 @@ class TaxAPIService:
         self.headers = {
             "User-Agent": "IWork Application/1.0",
             "Accept-Encoding": "gzip, deflate",
-            "Host": "data.sec.gov"
+            "Host": "data.sec.gov",
         }
 
     async def get_company_tax_data(
-            self, company_name: str, cik: Optional[str] = None, symbol: Optional[str] = None
+        self, company_name: str, cik: Optional[str] = None, symbol: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Get tax information for a company.
@@ -56,7 +56,9 @@ class TaxAPIService:
                         return tax_data
 
             except Exception as e:
-                logger.error(f"Error fetching tax data for public company {company_name}: {str(e)}")
+                logger.error(
+                    f"Error fetching tax data for public company {company_name}: {str(e)}"
+                )
 
         tax_data = self._generate_estimated_tax_data(company_name)
 
@@ -84,7 +86,7 @@ class TaxAPIService:
                 tax_fields = [
                     "IncomeTaxExpenseBenefit",
                     "CurrentIncomeTaxExpense",
-                    "ProvisionForIncomeTaxes"
+                    "ProvisionForIncomeTaxes",
                 ]
 
                 for field in tax_fields:
@@ -98,12 +100,16 @@ class TaxAPIService:
                                     value = entry["val"]
 
                                     if year:
-                                        yearly_taxes.append({
-                                            "year": year,
-                                            "amount": value,
-                                            "formatted_amount": format_currency(value),
-                                            "source": "SEC EDGAR"
-                                        })
+                                        yearly_taxes.append(
+                                            {
+                                                "year": year,
+                                                "amount": value,
+                                                "formatted_amount": format_currency(
+                                                    value
+                                                ),
+                                                "source": "SEC EDGAR",
+                                            }
+                                        )
 
                         if yearly_taxes:
                             break
@@ -117,7 +123,7 @@ class TaxAPIService:
                 "cik": cik,
                 "yearly_taxes": yearly_taxes,
                 "data_source": "SEC EDGAR",
-                "retrieved_at": datetime.now().isoformat()
+                "retrieved_at": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -133,7 +139,9 @@ class TaxAPIService:
             response = requests.get(url)
 
             if response.status_code != 200:
-                logger.error(f"Alpha Vantage API error: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Alpha Vantage API error: {response.status_code} - {response.text}"
+                )
                 return None
 
             data = response.json()
@@ -150,12 +158,14 @@ class TaxAPIService:
 
                     if tax_expense and tax_expense != "None":
                         tax_expense = float(tax_expense)
-                        yearly_taxes.append({
-                            "year": year,
-                            "amount": tax_expense,
-                            "formatted_amount": format_currency(tax_expense),
-                            "source": "Alpha Vantage"
-                        })
+                        yearly_taxes.append(
+                            {
+                                "year": year,
+                                "amount": tax_expense,
+                                "formatted_amount": format_currency(tax_expense),
+                                "source": "Alpha Vantage",
+                            }
+                        )
 
             yearly_taxes.sort(key=lambda x: x["year"], reverse=True)
 
@@ -164,11 +174,13 @@ class TaxAPIService:
                 "symbol": symbol,
                 "yearly_taxes": yearly_taxes,
                 "data_source": "Alpha Vantage",
-                "retrieved_at": datetime.now().isoformat()
+                "retrieved_at": datetime.now().isoformat(),
             }
 
         except Exception as e:
-            logger.error(f"Error fetching Alpha Vantage tax data for {symbol}: {str(e)}")
+            logger.error(
+                f"Error fetching Alpha Vantage tax data for {symbol}: {str(e)}"
+            )
             return None
 
     def _generate_estimated_tax_data(self, company_name: str) -> Dict[str, Any]:
@@ -191,19 +203,21 @@ class TaxAPIService:
             year = current_year - i
 
             variation = random.uniform(0.8, 1.2)
-            tax_amount = base_amount * variation * (1.05 ** i)
+            tax_amount = base_amount * variation * (1.05**i)
 
-            yearly_taxes.append({
-                "year": str(year),
-                "amount": round(tax_amount, 2),
-                "formatted_amount": format_currency(tax_amount),
-                "source": "Estimated"
-            })
+            yearly_taxes.append(
+                {
+                    "year": str(year),
+                    "amount": round(tax_amount, 2),
+                    "formatted_amount": format_currency(tax_amount),
+                    "source": "Estimated",
+                }
+            )
 
         return {
             "company_name": company_name,
             "yearly_taxes": yearly_taxes,
             "data_source": "Estimated (real data not available)",
             "retrieved_at": datetime.now().isoformat(),
-            "note": "These tax figures are estimated and may not reflect actual financial data."
+            "note": "These tax figures are estimated and may not reflect actual financial data.",
         }

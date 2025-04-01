@@ -15,10 +15,10 @@ class SalaryBase(BaseModel):
     location: Optional[str] = None
     is_anonymous: bool = True
 
-    @validator('salary_amount')
+    @validator("salary_amount")
     def salary_positive(cls, v):
         if v <= 0:
-            raise ValueError('Salary amount must be positive')
+            raise ValueError("Salary amount must be positive")
         return v
 
     @classmethod
@@ -37,21 +37,21 @@ class SalaryBase(BaseModel):
                     raise ValueError(f"Invalid {enum_class.__name__} value: {v}")
         raise ValueError(f"Invalid {enum_class.__name__} type: {type(v)}")
 
-    @validator('experience_level')
+    @validator("experience_level")
     def validate_experience_level(cls, v):
         return cls._validate_enum(v, ExperienceLevel, ExperienceLevel.INTERN)
 
-    @validator('employment_type')
+    @validator("employment_type")
     def validate_employment_type(cls, v):
         return cls._validate_enum(v, EmploymentType, EmploymentType.FULL_TIME)
-    
+
     @property
     def experience_level_value(self) -> str:
-        return getattr(self.experience_level, 'value', 'intern')
+        return getattr(self.experience_level, "value", "intern")
 
     @property
     def employment_type_value(self) -> str:
-        return getattr(self.employment_type, 'value', 'full-time')
+        return getattr(self.employment_type, "value", "full-time")
 
 
 class SalaryCreate(SalaryBase):
@@ -67,10 +67,10 @@ class SalaryUpdate(BaseModel):
     location: Optional[str] = None
     is_anonymous: Optional[bool] = None
 
-    @validator('salary_amount')
+    @validator("salary_amount")
     def salary_positive(cls, v):
         if v is not None and v <= 0:
-            raise ValueError('Salary amount must be positive')
+            raise ValueError("Salary amount must be positive")
         return v
 
 
@@ -86,9 +86,7 @@ class SalaryResponse(BaseModel):
     location: Optional[str] = None
     created_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
 
 class SalaryStatistics(BaseModel):
@@ -104,6 +102,4 @@ class UserSalariesResponse(BaseModel):
     total_count: int
     salaries: List[SalaryResponse]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
